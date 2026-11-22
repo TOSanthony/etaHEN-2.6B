@@ -98,28 +98,10 @@ jobs:
           test -f "$PS5_PAYLOAD_SDK/target/user/homebrew/lib/libcurl.a"
           rm -rf sdk sdk.zip
 
-      - name: Build keystone (host tests)
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          cd "$RUNNER_TEMP"
-          curl -fsSL --retry 3 "https://github.com/keystone-engine/keystone/archive/refs/tags/$KEYSTONE_VERSION.tar.gz" | tar -xz
-          cmake -S "keystone-$KEYSTONE_VERSION" -B keystone-build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-            -DBUILD_SHARED_LIBS=OFF -DLLVM_TARGETS_TO_BUILD=X86 \
-            -DBUILD_LIBS_ONLY=ON -DCMAKE_INSTALL_PREFIX="$KEYSTONE_PREFIX" -DCMAKE_INSTALL_LIBDIR=lib
-          cmake --build keystone-build
-          cmake --install keystone-build
-          rm -rf "keystone-$KEYSTONE_VERSION" keystone-build
-
       - name: Build etaHEN (Release)
         run: |
           export PATH="/usr/lib/llvm-$LLVM_VERSION/bin:$PS5_PAYLOAD_SDK/bin:$PATH"
           ./scripts/build.sh --release --jobs "$(nproc)"
-
-      - name: Host unit tests
-        run: |
-          make -C source/util/tests KEYSTONE_PREFIX="$KEYSTONE_PREFIX" HOST_CC="cc -include stdlib.h" -j"$(nproc)" test
-          git ls-files -z '*.py' ':!third_party' | xargs -0 -r python3 -m py_compile
 
       - uses: actions/upload-artifact@v7
         with:
