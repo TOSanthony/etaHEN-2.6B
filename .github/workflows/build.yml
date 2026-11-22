@@ -83,7 +83,7 @@ jobs:
 
           # Byepervisor kernel payload (hen.bin) is #incbin'd by the bootstrapper
           ( cd bootstrapper/Byepervisor/hen
-            make CXX="$PS5_PAYLOAD_SDK/bin/prospero-clang++" AS="$PS5_PAYLOAD_SDK/bin/prospero-clang" \
+            make CXX="$PS5_PAYLOAD_SDK/bin/prospero-clang++ -Qunused-arguments" AS="$PS5_PAYLOAD_SDK/bin/prospero-clang" \
                  PS5_PAYLOAD_SDK="$PS5_PAYLOAD_SDK/" CFLAGS_EXTRA= 
             ls -l hen.bin )
           mkdir -p build/hen
