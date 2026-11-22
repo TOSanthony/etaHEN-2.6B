@@ -650,14 +650,6 @@ constexpr const char* kIconThanks =
     "/user/data/etaHEN/assets/icon_xml_thanks.png";
 constexpr const char* kIconProject =
     "/user/data/etaHEN/assets/icon_xml_project.png";
-constexpr const char* kIconAuthorAvatar =
-    "/user/data/etaHEN/assets/icon_xml_author_avatar.png";
-constexpr const char* kIconDonatorLjf =
-    "/user/data/etaHEN/assets/icon_xml_donator_ljf.png";
-constexpr const char* kIconDonatorSzx =
-    "/user/data/etaHEN/assets/icon_xml_donator_szx.png";
-constexpr const char* kIconDonatorAglx =
-    "/user/data/etaHEN/assets/icon_xml_donator_aglx.png";
 
 bool toolbox_on(const char* id) {
   return resolve_toolbox_control_value(id) == "1";
@@ -917,109 +909,117 @@ void append_toolbox_debug_group(ps5ui::Group& g) {
 }
 
 void append_toolbox_about_group(ps5ui::Group& g) {
-  /* About page top: same ETAHEN_VERSION as welcome toast / beta banner. */
-  const std::string build_line =
-      toolbox_i18n::format("about.build", ETAHEN_VERSION);
+  /* About page: etaHEN 2.5 layout/text, with this build's version string. */
+  const std::string ver = std::string("★ etaHEN ") + ETAHEN_VERSION;
+  const auto C = ps5ui::Style::Center;
+  const auto L = ps5ui::Style::Left;
 
-  g.label("id_about_build", build_line, ps5ui::Style::Center)
-      .group(
-       "id_donation_methods", toolbox_i18n::tr("about.donate"),
-       [](ps5ui::Group& d) {
-         d.label("id_method_info", toolbox_i18n::tr("about.donate.methods"),
-                    ps5ui::Style::Center)
+  g.group(
+       "id_donation_methods", "Support the Project",
+       [C](ps5ui::Group& d) {
+         d.label("id_method_info", "★ Donation Methods", C)
              .label("id_method_1",
-                    "- Ko-fi  | https://ko-fi.com/0xp0co",
-                    ps5ui::Style::Center)
-             .label("id_method_2", toolbox_i18n::tr("about.wechat"),
-                    ps5ui::Style::Center)
-             .button("id_author_0xp0co", "麒麟/0xp0co", std::nullopt, "@0xp0co",
-                     kIconAuthorAvatar)
-             .label("id_author_donor_spacer", "　", ps5ui::Style::Center)
-             .label("id_donor_info", toolbox_i18n::tr("about.donors"),
-                    ps5ui::Style::Center)
-             .button("id_donator_aglx", "爱过流星", std::nullopt,
-                     std::nullopt, kIconDonatorAglx)
-             .button("id_donator_ljf", "狂爱龙卷風", std::nullopt,
-                     std::nullopt, kIconDonatorLjf)
-             .button("id_donator_szx", "石之心", std::nullopt,
-                     std::nullopt, kIconDonatorSzx);
+                    "- GitHub Sponsors  | https://github.com/sponsors/LightningMods",
+                    C);
        },
-       toolbox_i18n::tr("about.donate.sub"), kIconDonations)
+       "Do you like the project? Consider Donating", kIconDonations)
       .group(
-          "id_etahen_credits", toolbox_i18n::tr("about.credits"),
-          [](ps5ui::Group& c) {
-            const std::string ver =
-                std::string("★ etaHEN ") + ETAHEN_VERSION;
-            c.label("id_about_version", ver, ps5ui::Style::Center)
-                .label("id_about_lineage", toolbox_i18n::tr("about.lineage"),
-                       ps5ui::Style::Center)
-                .label("id_about_lineage_1",
-                       toolbox_i18n::tr("about.lineage.etahen"),
-                       ps5ui::Style::Center)
-                .label("id_about_lineage_2",
-                       toolbox_i18n::tr("about.lineage.goldhen"),
-                       ps5ui::Style::Center)
-                .label("id_about_contributor", toolbox_i18n::tr("about.contributor"),
-                       ps5ui::Style::Center)
-                .label("id_about_testers", toolbox_i18n::tr("about.testers"),
-                       ps5ui::Style::Center)
-                .label("id_about_testers_intro",
-                       toolbox_i18n::tr("about.testers.intro"),
-                       ps5ui::Style::Center)
-                .label("id_about_tester_1",
-                       "即食面 · 雨之声 · 大饼电玩",
-                       ps5ui::Style::Center)
-                .label("id_about_tester_2",
-                       "安定区 · 随风 · 麒麟",
-                       ps5ui::Style::Center)
-                .label("id_about_tester_3",
-                       "尼克库尔曼 · 云 · 啊烦",
-                       ps5ui::Style::Center)
-                .label("id_about_tester_4",
-                       "小小蔡 · B站谢锡榆 · 荆枫",
-                       ps5ui::Style::Center)
-                .label("id_about_more", toolbox_i18n::tr("about.more"),
-                       ps5ui::Style::Center);
+          "id_etahen_credits", "etaHEN Credits",
+          [C, L, ver](ps5ui::Group& c) {
+            c.label("id_etahen_creds_display", ver, C)
+                .label("id_lead_devs", "★ Lead Developer(s) ★", C)
+                .label("id_lead_devs_2",
+                       "- LM (X @LightningMods_, GitHub @LightningMods, Discord @lm_dev)",
+                       C)
+                .label("id_ddkdkd", "★ etaHEN Contributors ★", C)
+                .label("id_major_line",
+                       "Specter - Byepervisor          astrelsky          "
+                       "ChendoChap       sleirsgoevy - Kstuff",
+                       C)
+                .label("id_major_line_3", "John tornblom - elfldr, etc", C)
+                .label("id_99877777",
+                       "For more info, updates or issues visit the GitHub Repo",
+                       C)
+                .label("id_99555557", "https://github.com/LightningMods/etaHEN",
+                       C)
+                .label("id_8585858",
+                       "Special Thanks to all the Supporters including the following:",
+                       C)
+                .label("id_60606066",
+                       "MODDED WARFARE, Bucanero, Echo Stretch, CurrentGenGamesWithNick, "
+                       "Reo Auin, illusion, nanospeedgamer, Nomadic, Michael Crump, "
+                       "Br0ken4life, Mouuu, Newhouse-Estates, Dr Angry ",
+                       L)
+                .label("id_60888880",
+                       "Richard Stoltz, Not So Typical Gamer, Doobie, MC, WWIII, dutchfavx, "
+                       "Pulsar, gorshco, illix, Ya Boi Michael, Nineof09, Lostferwords, "
+                       "Kevin, kUiTs, ram",
+                       L)
+                .label("id_606064330",
+                       "onstar, Mapleditch, pyksy, Puky70, TheBoySassy21, Arnooooo, Jacksun, "
+                       "William, MauricioRodriguez, Micaiah, Madmac, Grit, dIGIMAN/TRSI, xe, "
+                       "Priyesh Patel",
+                       L)
+                .label("id_60606770",
+                       "JUNGLIST, Mega, smoothcriminal, Aka3z, Btet, 星空尽头, Tunc, Pitouuuu, "
+                       "Moha, proton, teotl, Hector, Osensama, Trope, x, jack favvv, lbc, Jay, "
+                       "mstrdtchs",
+                       L)
+                .label("id_606069990",
+                       "rookie_mx, SvenGDK, jose Gonzalez, Lysy767, Alfr3d, Fey, Knight1701, "
+                       "Efrain, Hernie, Johns, Madz, CRUCHI, koldoborne, slang777, Puffinz, "
+                       "Tv, Ubaldo Navarro",
+                       L)
+                .label("id_606099960",
+                       "Escaflowne, SrBonet, Gauban, joao, El01unO, SrBonet, Rayyden, CZ, "
+                       "Efrain De Alba, aide199a, Acesmokemall, Mheepae3029, fresno, wiiiiiz, "
+                       "aln, Eli, marusa Bucicas",
+                       L)
+                .label("id_606055560",
+                       "Ion Florin Berusca, Bbuster, Dimitar, ROBERHUGO, PlayStationHaX, "
+                       "TecnoConsolas, mega_lelikUAPS4_5.55, An21V1rus, cyberrep, "
+                       "PlanetaryNoob, chiagre, Samwise, Fortderrick",
+                       L)
+                .label("id_6060ttttt0",
+                       "ChimeFix, PeenButt, Wr0zen, Shawncarnage, Kuny, Cruznik, Vicen, "
+                       "shagy #8543, pepitopajas, Jakob Trammell, Austin Meer, scrdcow, "
+                       "XDOSEX, Kleei, Pif, ajslayer",
+                       L);
           },
-          toolbox_i18n::tr("about.credits.sub"), kIconThanks)
+          "Credits and Supporters", kIconThanks)
       .group(
-          "id_inc_project", toolbox_i18n::tr("about.projects"),
-          [](ps5ui::Group& p) {
-            p.label("id_project_info", toolbox_i18n::tr("about.projects.info"),
-                    ps5ui::Style::Center)
+          "id_inc_project", "Projects included in etaHEN",
+          [C](ps5ui::Group& p) {
+            p.label("id_project_info",
+                    "★ Open and Closed Source Projects used in etaHEN", C)
                 .label("id_project_1",
-                       "etaHEN — https://github.com/LightningMods/etaHEN",
-                       ps5ui::Style::Center)
+                       "PS5 Payload Dev SDK - https://github.com/ps5-payload-dev/sdk", C)
                 .label("id_project_2",
-                       "PS5 Payload Dev SDK — "
-                       "https://github.com/ps5-payload-dev/sdk",
-                       ps5ui::Style::Center)
+                       "PS5 Payload Dev elfldr - https://github.com/ps5-payload-dev/elfldr",
+                       C)
                 .label("id_project_3",
-                       "PS5 Payload Dev elfldr — "
-                       "https://github.com/ps5-payload-dev/elfldr",
-                       ps5ui::Style::Center)
+                       "PS5 Dev Byepervisor - https://github.com/PS5Dev/Byepervisor", C)
                 .label("id_project_4",
-                       "libhijacker (astrelsky) — "
-                       "https://github.com/astrelsky/libhijacker",
-                       ps5ui::Style::Center)
+                       "Kstuff by sleirsgoevy - https://github.com/etaHEN/kstuff", C)
                 .label("id_project_5",
-                       "NineS (buzzer-re) — "
-                       "https://github.com/buzzer-re/NineS",
-                       ps5ui::Style::Center)
+                       "7-Zip LZMA - https://www.7-zip.org/sdk.html", C)
                 .label("id_project_6",
-                       "kstuff (sleirsgoevy / EchoStretch)",
-                       ps5ui::Style::Center)
+                       "Libhijacker by astrelsky - https://github.com/astrelsky/libhijacker",
+                       C)
                 .label("id_project_7",
-                       "cJSON — https://github.com/DaveGamble/cJSON",
-                       ps5ui::Style::Center)
+                       "Tiny-json - https://github.com/rafagafe/tiny-json", C)
                 .label("id_project_8",
-                       "7-Zip LZMA SDK — https://www.7-zip.org/sdk.html",
-                       ps5ui::Style::Center)
+                       "PS5-SELF-Decrypter by Specter - "
+                       "https://github.com/Cryptogenic/PS5-SELF-Decrypter",
+                       C)
                 .label("id_project_9",
-                       "miniz / Keystone (cheats engine)",
-                       ps5ui::Style::Center);
+                       "PS5Debug by CTN - https://github.com/GoldHEN/ps5debug", C)
+                .label("id_project_10",
+                       "LibNineS - https://github.com/buzzer-re/NineS", C)
+                .label("id_project_11",
+                       "Libmicrohttpd - https://www.gnu.org/software/libmicrohttpd/", C);
           },
-          toolbox_i18n::tr("about.projects.sub"), kIconProject);
+          "Projects used in etaHEN", kIconProject);
 }
 
 } // namespace

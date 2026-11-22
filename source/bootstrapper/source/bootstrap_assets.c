@@ -13,6 +13,8 @@ extern uint8_t dpiv2_start[];
 extern const unsigned int dpiv2_size;
 extern uint8_t ftpsrv_start[];
 extern const unsigned int ftpsrv_size;
+extern uint8_t ntp_start[];
+extern const unsigned int ntp_size;
 extern uint8_t sicon_start[];
 extern const unsigned int sicon_size;
 
@@ -60,6 +62,9 @@ bool bootstrap_assets_write(void) {
   /* FTP server ships inside etaHEN as a plugin as well (FTPS00001). */
   (void)write_file_atomic("/data/etaHEN/plugins/FTPS00001.elf", ftpsrv_start,
                           ftpsrv_size);
+  /* NTP time-sync plugin (NTPS00001), European servers by default. */
+  (void)write_file_atomic("/data/etaHEN/plugins/NTPS00001.elf", ntp_start,
+                          ntp_size);
 
   mkdir("/system_ex/vsh_asset", 0777);
   (void)write_file_atomic("/system_ex/vsh_asset/etahenui.png", sicon_start,

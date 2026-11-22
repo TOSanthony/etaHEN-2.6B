@@ -13,6 +13,9 @@
 #ifndef ETAHEN_FTPSRV_ELF
 #define ETAHEN_FTPSRV_ELF "../../bin/ftpsrv.elf"
 #endif
+#ifndef ETAHEN_NTP_ELF
+#define ETAHEN_NTP_ELF "../../bin/ntp.elf"
+#endif
 #ifndef ETAHEN_DPIV2_ELF
 #define ETAHEN_DPIV2_ELF "../../bin/dpiv2.elf"
 #endif
@@ -81,6 +84,18 @@ __asm__(".intel_syntax noprefix\n"
         ".align  4\n"
         "ftpsrv_size:\n"
         ".int    ftpsrv_end - ftpsrv_start\n"
+
+        ".global ntp_start\n"
+        ".type   ntp_start, @object\n"
+        ".align  16\n"
+        "ntp_start:\n"
+        ".incbin \"" ETAHEN_NTP_ELF "\"\n"
+        "ntp_end:\n"
+        ".global ntp_size\n"
+        ".type   ntp_size, @object\n"
+        ".align  4\n"
+        "ntp_size:\n"
+        ".int    ntp_end - ntp_start\n"
 
         ".global sicon_start\n"
         ".type   sicon_start, @object\n"

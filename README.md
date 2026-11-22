@@ -89,6 +89,7 @@ Port: XXXX
  - Update blocker (unmounts update partition)
  - *Optional* Illusions cheats/patches [Plugin](https://github.com/LightningMods/etaHEN-SDK/tree/main/Plugin_samples/Illusion_cheats)
  - FTP server on port 1337 (built-in plugin, managed from ★ etaHEN Plugins)
+ - NTP time sync plugin (built-in, European servers by default, managed from ★ etaHEN Plugins)
  - *Optional* /data allowed inside apps sandboxes
  - Klog server on port 9081
  - elf loader on port 9021 (use Johns elfldr)

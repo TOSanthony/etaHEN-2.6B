@@ -1,0 +1,5 @@
+# Ensure consistent line endings
+* text=auto eol=lf
+
+# Binary files
+*.png binary

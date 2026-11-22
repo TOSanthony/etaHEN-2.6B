@@ -132,17 +132,19 @@ if(DEFINED ETAHEN_OUT_BIN)
 	set(_eta_elfldr_elf "${ETAHEN_OUT_BIN}/eta_elfldr.elf")
 	set(_eta_dpiv2_elf "${ETAHEN_OUT_BIN}/dpiv2.elf")
 	set(_eta_ftpsrv_elf "${ETAHEN_OUT_BIN}/ftpsrv.elf")
+	set(_eta_ntp_elf "${ETAHEN_OUT_BIN}/ntp.elf")
 else()
 	set(_eta_daemon_elf "${PROJECT_ROOT}/bin/daemon.elf")
 	set(_eta_util_elf "${PROJECT_ROOT}/bin/util.elf")
 	set(_eta_elfldr_elf "${PROJECT_ROOT}/bin/eta_elfldr.elf")
 	set(_eta_dpiv2_elf "${PROJECT_ROOT}/bin/dpiv2.elf")
 	set(_eta_ftpsrv_elf "${PROJECT_ROOT}/bin/ftpsrv.elf")
+	set(_eta_ntp_elf "${PROJECT_ROOT}/bin/ntp.elf")
 endif()
 set_source_files_properties(
 	${D_SRC}/daemon.c
 	PROPERTIES OBJECT_DEPENDS
-		"${_eta_daemon_elf};${_eta_util_elf};${_eta_elfldr_elf};${_eta_dpiv2_elf};${_eta_ftpsrv_elf};${ETAHEN_KSTUFF_ELF};${D_CWD}/assets/etahen_sicon.png;${_generated_icon_files}"
+		"${_eta_daemon_elf};${_eta_util_elf};${_eta_elfldr_elf};${_eta_dpiv2_elf};${_eta_ftpsrv_elf};${_eta_ntp_elf};${ETAHEN_KSTUFF_ELF};${D_CWD}/assets/etahen_sicon.png;${_generated_icon_files}"
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE
 	ETAHEN_DAEMON_ELF="${_eta_daemon_elf}"
@@ -150,6 +152,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 	ETAHEN_ELFLDR_ELF="${_eta_elfldr_elf}"
 	ETAHEN_DPIV2_ELF="${_eta_dpiv2_elf}"
 	ETAHEN_FTPSRV_ELF="${_eta_ftpsrv_elf}"
+	ETAHEN_NTP_ELF="${_eta_ntp_elf}"
 	ETAHEN_KSTUFF_ELF="${ETAHEN_KSTUFF_ELF}"
 	ETAHEN_ICON_ASSET_DIR="${_icon_output_dir}"
 )

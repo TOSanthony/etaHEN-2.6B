@@ -377,6 +377,17 @@ main() {
   cp "${BUILD}/ftpsrv/bin/FTPS00001.elf" "${BIN}/ftpsrv.elf"
   ok "built ftpsrv.elf"
 
+  # Phase 2d — NTP time sync plugin (embedded into the bootstrapper, installed as a plugin)
+  log "Phase 2d: NTP plugin"
+  cmake -S "${ROOT}/plugins/ntp" -B "${BUILD}/ntp" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE="${ROOT}/plugins/ntp/cmake/ps5-toolchain.cmake" \
+    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
+  cmake --build "${BUILD}/ntp" -j"${JOBS}"
+  [[ -f "${BUILD}/ntp/bin/ntp.elf" ]] || die "missing ntp.elf after plugin build"
+  cp "${BUILD}/ntp/bin/ntp.elf" "${BIN}/ntp.elf"
+  ok "built ntp.elf"
+
   # Phase 3 — bootstrapper (embeds daemon/util + kstuff + assets)
   log "Phase 3/5: bootstrapper"
   build_targets bootstrapper bootstrapper_packed
