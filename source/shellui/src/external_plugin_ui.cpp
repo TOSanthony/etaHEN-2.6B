@@ -107,6 +107,11 @@ DispatchResult dispatch(std::string_view control_id, std::string_view value) {
   if (split_control_id(control_id, kPluginDeletePrefix, result.plugin_id, 9,
                        9)) {
     result.owned = true;
+    if (result.plugin_id == "UPDT00001") { /* protected: never deletable */
+      result.success = false;
+      result.action = Action::Deleted;
+      return result;
+    }
     result.success = client.DeletePlugin(result.plugin_id);
     result.action = Action::Deleted;
     if (result.success)

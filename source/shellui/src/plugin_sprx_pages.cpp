@@ -45,6 +45,9 @@ void fill_plugin_config(ps5ui::Page &page, const PluginInventoryItem &plugin,
               settings->description.empty()
                   ? std::optional<std::string>{}
                   : std::optional<std::string>{settings->description});
+  /* The Plugin Updater is how every other plugin is (re)installed: it cannot
+   * be deleted from the UI. */
+  if (plugin.plugin_id == "UPDT00001") return;
   page.button(std::string(kPluginDeletePrefix) + plugin.plugin_id,
               toolbox_i18n::tr("plugins.external.delete"), std::nullopt,
               std::nullopt, std::nullopt, ps5ui::Style::None,

@@ -1,7 +1,7 @@
 name: Nightly build
 
 # Builds main once a day, but only when main has moved since the last nightly.
-# The result is published as a single rolling pre-release tagged `nightly`.
+# Every build publishes the rolling `nightly` pre-release and a numbered `build-N` release (Latest), both with etaHEN.elf + all plugin ELFs.
 on:
   push:
     branches: ['**']
@@ -125,7 +125,7 @@ jobs:
           retention-days: 7
 
   publish:
-    name: Publish nightly release
+    name: Publish releases
     needs: build
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -157,7 +157,7 @@ jobs:
               echo "- Changes since $stable: [\`$stable...$short\`]($url/compare/$stable...$GITHUB_SHA)"
             fi
             echo "- \`etaHEN.elf\` SHA-256: \`$(sha256sum etaHEN.elf | cut -d' ' -f1)\`"
-            echo "- Plugin ELFs (DPI v2, FTP, NTP, Dashboard, Media Gallery, Plugin Updater) are attached too: copy one to \`/data/etaHEN/plugins/\` to reinstall it."
+            echo "- etaHEN.elf only embeds the Plugin Updater; all plugin ELFs (DPI v2, FTP, NTP, Dashboard, Media Gallery, Plugin Updater) are attached: install them with the Plugin Updater or copy one to \`/data/etaHEN/plugins/\` to reinstall it."
           } > notes.md
 
           if gh release view nightly >/dev/null 2>&1; then
@@ -174,3 +174,16 @@ jobs:
             gh release create nightly etaHEN.elf DPIV00001.elf FTPS00001.elf NTPS00001.elf DASH00001.elf MGAL00001.elf UPDT00001.elf --target "$GITHUB_SHA" --prerelease \
               --title "Nightly build ($short)" --notes-file notes.md
           fi
+
+      - name: Publish a numbered release (becomes "Latest")
+        run: |
+          short=${GITHUB_SHA::7}
+          tag="build-${GITHUB_RUN_NUMBER}"
+          {
+            echo "Build #${GITHUB_RUN_NUMBER} of \`main\` at [\`$short\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA), built $(date -u '+%Y-%m-%d %H:%M UTC')."
+            echo
+            echo "- \`etaHEN.elf\` SHA-256: \`$(sha256sum etaHEN.elf | cut -d' ' -f1)\`"
+            echo "- \`etaHEN.elf\` only embeds the Plugin Updater (UPDT00001). Every other plugin ELF (DPI v2, FTP, NTP, Dashboard, Media Gallery) is attached here and can be installed from the Plugin Updater, or copied to \`/data/etaHEN/plugins/\`."
+          } > notes_build.md
+          gh release create "$tag" etaHEN.elf DPIV00001.elf FTPS00001.elf NTPS00001.elf DASH00001.elf MGAL00001.elf UPDT00001.elf \
+            --target "$GITHUB_SHA" --latest --title "etaHEN build #${GITHUB_RUN_NUMBER} ($short)" --notes-file notes_build.md

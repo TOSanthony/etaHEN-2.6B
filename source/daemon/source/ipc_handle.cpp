@@ -1,3 +1,4 @@
+#include <string_view>
 /* Copyright (C) 2025 etaHEN / LightningMods
  * Crit daemon IPC command dispatch.
  * Transport (listen/accept/thread) stays in msg.cpp.
@@ -172,6 +173,10 @@ void handleIPC(clientArgs *client, std::string &inputStr,
         eta_cjson::string_item(my_json.get(), "plugin_id");
     if (!plugin_id || !*plugin_id) {
       reply(sender_app, true, "missing plugin_id");
+      break;
+    }
+    if (command == BREW_PLUGIN_DELETE && std::string_view(plugin_id) == "UPDT00001") {
+      reply(sender_app, true, "the Plugin Updater cannot be deleted");
       break;
     }
     const eta::plugin::OperationResult result =
