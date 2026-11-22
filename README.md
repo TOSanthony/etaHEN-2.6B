@@ -88,11 +88,11 @@ Port: XXXX
  - Jailbreak IPC call (jailbreaks Homebrew apps)
  - Update blocker (unmounts update partition)
  - *Optional* Illusions cheats/patches [Plugin](https://github.com/LightningMods/etaHEN-SDK/tree/main/Plugin_samples/Illusion_cheats)
- - FTP server on port 1337 (built-in plugin, managed from ★ etaHEN Plugins)
- - NTP time sync plugin (built-in, European servers by default, managed from ★ etaHEN Plugins)
- - Dashboard plugin (built-in): show/hide the PlayStation Store, PlayStation Plus and Welcome Hub home tiles (app.db), managed from ★ etaHEN Plugins
- - Media Gallery plugin (built-in): read-only HTTP access to screenshots and video clips (default port 8380), managed from ★ etaHEN Plugins
- - Plugin Updater (built-in): downloads and installs the plugin ELFs from the GitHub releases (nightly or latest), managed from ★ etaHEN Plugins
+ - FTP server on port 1337 (plugin, installed with the Plugin Updater, managed from ★ etaHEN Plugins)
+ - NTP time sync plugin (plugin via Plugin Updater, European servers by default, managed from ★ etaHEN Plugins)
+ - Dashboard plugin (via Plugin Updater): show/hide the PlayStation Store, PlayStation Plus and Welcome Hub home tiles (app.db), managed from ★ etaHEN Plugins
+ - Media Gallery plugin (via Plugin Updater): read-only HTTP access to screenshots and video clips (default port 8380), managed from ★ etaHEN Plugins
+ - Plugin Updater (the only plugin built into etaHEN.elf): lists, downloads and installs every plugin ELF published from the GitHub releases (nightly or latest), managed from ★ etaHEN Plugins
  - *Optional* /data allowed inside apps sandboxes
  - Klog server on port 9081
  - elf loader on port 9021 (use Johns elfldr)
