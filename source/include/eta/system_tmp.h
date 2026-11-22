@@ -9,9 +9,9 @@
 #include <stdio.h>
 
 #if defined(ETA_HOST_TEST)
-#define ETA_SYSTEM_TMP_ROOT "/tmp/onionhen"
+#define ETA_SYSTEM_TMP_ROOT "/tmp/etahen"
 #else
-#define ETA_SYSTEM_TMP_ROOT "/system_tmp/onionhen"
+#define ETA_SYSTEM_TMP_ROOT "/system_tmp/etahen"
 #endif
 
 #define ETA_SYSTEM_TMP_IPC_ROOT ETA_SYSTEM_TMP_ROOT "/ipc"

@@ -4,7 +4,7 @@ name: Nightly build
 # The result is published as a single rolling pre-release tagged `nightly`.
 on:
   push:
-    branches: [main, onionhen-base]
+    branches: ['**']
   schedule:
     - cron: "0 19 * * *" # 03:00 Asia/Shanghai
   workflow_dispatch:

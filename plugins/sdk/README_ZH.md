@@ -1,0 +1,218 @@
+<p align="center">
+  <img src="assets/logo.png" alt="etaHEN" height="128" width="128"/>
+</p>
+
+<p align="center">
+  <b>etaHEN Plugin SDK</b><br/>
+  面向 PlayStation 5 独立 Payload 插件的模块化 C SDK
+</p>
+
+<p align="center">
+  <b>简体中文</b>
+  ·
+  <a href="README.md">English</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="许可证"/></a>
+  <img src="https://img.shields.io/badge/Platform-PlayStation%205-003791?style=flat&logo=playstation" alt="PlayStation 5"/>
+  <img src="https://img.shields.io/badge/C-00599C?style=flat&logo=c&logoColor=white" alt="C"/>
+  <img src="https://img.shields.io/badge/Build-CMake-064F8C?style=flat&logo=cmake" alt="CMake"/>
+</p>
+
+etaHEN Plugin SDK 为独立运行的 PS5 ELF 插件提供基础协议和运行时。
+插件以独立进程运行，通过版本化 C ABI、宿主服务、生命周期回调、事件总线
+和可替换 IPC 传输与宿主通信。SDK 不暴露 etaHEN daemon 内部实现，也不依赖
+C++ ABI，方便后续演进和测试。
+
+> 本仓库实现的是插件侧 SDK。etaHEN 已具备宿主 UI registry、ShellUI XML
+> adapter、协作式 daemon 插件 socket 和插件管理器。插件是包含
+> `.eta_plugin` 描述符的标准 little-endian ELF，不需要 ZIP 容器或 manifest。
+
+## 功能
+
+- 面向 PS5 target 的 CMake `eta_add_plugin(...)`
+- 写入 `.eta_plugin` section 的版本化插件描述符
+- 明确的生命周期状态机和回调
+- 日志、通知、配置等 capability-scoped 宿主服务
+- 字符串、整数、布尔配置辅助函数
+- 支持回调中安全取消订阅的线程安全事件总线
+- 带 request ID 和状态响应的固定宽度 IPC frame
+- 连接级 `HELLO`，绑定不可变 plugin ID 并声明 capability
+- 可替换 transport，支持 socket、mock 以及未来实现
+- 版本化 `eta.ui` service，支持页面、菜单、分组、标签、按钮、开关、列表、
+  列表项和输入框 contribution
+- 带完整校验的 little-endian UI document 与分块 IPC 注册
+- 按 owner 隔离的 UI 动作轮询与严格事件解码
+- 插件检查和原子部署 Python 工具
+- `hello`、daemon 与动态 UI smoke test 示例
+
+## 依赖
+
+- PS5 Payload SDK（`PS5_PAYLOAD_SDK`）
+- CMake 3.20 或更高版本
+- Ninja（推荐）
+- 支持 Prospero target 的 Clang/LLVM
+- Python 3.9 或更高版本
+
+主机侧 Runtime 测试只需要 C 编译器、CMake、Python 和 pthreads。
+
+## 构建与测试
+
+构建主机侧 Runtime 测试：
+
+```sh
+cmake -S . -B build -G Ninja -DETA_SDK_BUILD_TESTS=ON
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+构建 PS5 示例：
+
+```sh
+export PS5_PAYLOAD_SDK=/path/to/ps5-payload-sdk
+cmake -S . -B build-ps5 -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=cmake/ps5-toolchain.cmake \
+  -DETA_SDK_BUILD_SAMPLES=ON \
+  -DPS5_PAYLOAD_SDK="$PS5_PAYLOAD_SDK"
+cmake --build build-ps5 --target hello
+```
+
+插件 ELF 输出到 `build-ps5/bin/hello.elf`。使用
+`tools/deploy_plugin.py` 部署后，host 会在校验 descriptor 后安装为
+`/data/etaHEN/plugins/<plugin_id>.elf`。
+
+端到端验证动态 UI 时，构建并部署带自动启动标志的 smoke test 插件：
+
+```sh
+cmake --build build-ps5 --target dynamic_ui
+python3 tools/deploy_plugin.py build-ps5/bin/dynamic_ui.elf
+```
+
+它会安装为 `/data/etaHEN/plugins/ONIO00003.elf`。etaHEN 启动或重新
+reconcile 插件后，打开 `Dynamic UI Smoke Test` 页面，依次操作开关、列表、
+数字输入框和带确认的动作按钮。注册、动作和退出记录会追加到
+`/data/etaHEN/dynamic_ui_smoke.log`。
+
+## 创建插件
+
+```cmake
+cmake_minimum_required(VERSION 3.20)
+project(MyPlugin C)
+
+find_package(etaHENPluginSDK CONFIG REQUIRED)
+eta_add_plugin(
+    NAME my_plugin
+    TITLE_ID MYPL00001
+    VERSION 1.00
+    SOURCES source/main.c
+    LIBRARIES SceLibcInternal kernel_sys)
+```
+
+`eta_add_plugin` 会自动链接 `etaHEN::Runtime`。`main(void)` 仍然是普通的
+PS5 Payload 入口。跨宿主边界的数据必须使用公共 C 头文件定义；指针、STL
+对象、异常和 C++ 类布局都不属于稳定 ABI。
+
+## UI Contribution
+
+使用 IPC client 时，应在查询可选服务前为连接建立一次会话。descriptor ID
+由插件自行声明；宿主会将它绑定到当前连接并拒绝重复的活跃 ID，但不会对插件
+进行密码学认证。
+
+```c
+eta_socket_transport_connect(&transport, &socket_state,
+                               ETA_PLUGIN_IPC_SOCKET_PATH);
+eta_client_init(&client, &transport);
+eta_client_open_session(&client, &eta_plugin_descriptor);
+eta_client_make_services(&client, &host_services);
+```
+
+包含 `<eta/ui.h>` 并创建 opaque `eta_ui_document`。先加入根页面，再加入
+子节点；校验完成后，通过插件收到的 Host Services 注册。相同 `plugin_id` 与
+`contribution_id` 的新文档会原子替换旧文档，并保持原有 handle。
+
+```c
+eta_ui_document_desc_v1 document_desc = {
+    .struct_size = sizeof(document_desc),
+    .abi_version = ETA_UI_ABI_VERSION,
+    .plugin_id = "MYPL00001",
+    .contribution_id = "settings",
+    .title = "My plugin",
+    .root_page_id = "main",
+};
+eta_ui_document *document = NULL;
+eta_ui_document_create(&document_desc, &document);
+
+eta_ui_node_desc_v1 page = {
+    .struct_size = sizeof(page),
+    .abi_version = ETA_UI_ABI_VERSION,
+    .kind = ETA_UI_NODE_PAGE,
+    .id = "main",
+    .title = "Settings",
+};
+eta_ui_document_add_node(document, &page);
+eta_ui_register(host_services, document, &handle);
+```
+
+在插件自己的事件循环中轮询动作。每次调用最多消费一个事件；队列为空时会立即
+返回 `ETA_E_NOT_FOUND`。
+
+```c
+eta_ui_event_v1 event;
+if (eta_client_poll_ui_event(&client, &event) == ETA_OK) {
+    eta_event_publish(event_bus, ETA_EVENT_UI_ACTION,
+                        &event, sizeof(event));
+}
+```
+
+UI document 上限为 256 KiB、256 个节点和 8 层嵌套。插件 ID 与节点 ID 是
+稳定标识，不是显示文本。插件正常停止时应主动 unregister；连接异常断开时，
+宿主也会清理该会话拥有的全部 contribution。
+
+## 架构
+
+```text
+插件代码
+    -> Runtime + Host Services
+    -> IPC Client Adapter
+    -> Transport（socket、mock 或未来实现）
+```
+
+所有权边界、状态转换、ABI 约束和扩展方式见
+[docs/architecture.md](docs/architecture.md)。
+
+## 当前范围与路线图
+
+当前版本已包含插件侧 UI Contribution contract、etaHEN registry/XML adapter、
+跨进程 snapshot 发布和按 owner 隔离的动作投递。剩余宿主层按以下顺序实现：
+
+1. 日志、通知与配置等剩余 daemon Host Service handler
+2. 插件状态、自动启动、停止/重启和崩溃恢复
+3. 可选的 WebUI contribution backend
+4. 可选的 etaHEN `.plugin` 兼容工具
+
+当前 daemon 插件 socket 已处理 `HELLO`、`PING`、9 号事件轮询和 10–15 号 UI
+命令。`eta_client_poll_ui_event()` 每次返回一个校验后的
+`eta_ui_event_v1`，队列为空时返回 `ETA_E_NOT_FOUND`。日志、通知、配置等
+其它 Host Service 命令在 daemon handler 完成前返回
+`ETA_E_NOT_SUPPORTED`。
+
+## 参与贡献
+
+提交 Pull Request 前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。Bug 和功能
+建议请使用 GitHub Issue 表单；安全问题请按照 [SECURITY.md](SECURITY.md)
+中的方式报告。
+
+## 致谢与相关项目
+
+- [etaHEN](https://github.com/TOSanthony/etaHEN-2.6B) — 宿主项目及本仓库使用的原始 Logo
+- [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero 工具链和目标头文件
+- [etaHEN-Plugins](https://github.com/etaHEN/etaHEN-Plugins) — PS5 插件项目结构和打包约定的参考
+
+## 许可证
+
+本项目基于 [GNU General Public License v3.0](LICENSE) 发布。第三方组件保留
+各自的许可证和声明。
+
+> etaHEN 是非官方自制项目，与 Sony Interactive Entertainment 无关。
+> 请只在你拥有的硬件上使用，并自行承担风险。本项目不提供任何担保。

@@ -107,7 +107,7 @@ etaHEN.elf → bootstrapper → eta_elfldr.elf (:9020) → util.elf → kstuff.e
 ### FTP 服务器
 
 FTP 由独立的
-[`etaHEN-ftpsrv-plugin`](https://github.com/OnionBuddies/onionHEN-ftpsrv-plugin)
+[`etaHEN-ftpsrv-plugin`](https://github.com/TOSanthony/etaHEN-2.6B)
 提供。将其安装为 `/data/etaHEN/plugins/FTPS00001.elf` 后，etaHEN 会自动发现
 并启动；插件动态设置页提供启用、端口和重启控制。插件保留上游 `ftpsrv` 的
 `KILL`、`SELF`、`SCHK`、`MTRW`、`AUTHID` 等命令（视固件支持而定）。
@@ -115,7 +115,7 @@ FTP 由独立的
 ### ShadowMount+
 
 ShadowMount+ 由可选的外部
-[`etaHEN-shadowmountplus-plugin`](https://github.com/OnionBuddies/onionHEN-shadowmountplus-plugin)
+[`etaHEN-shadowmountplus-plugin`](https://github.com/TOSanthony/etaHEN-2.6B)
 提供。将带 descriptor 的 ELF 安装到 `/data/etaHEN/plugins/` 后，daemon 统一负责
 发现、启动、停止、替换和删除；插件动态页面提供立即扫描操作。它依赖
 `kstuff`，自身选项保存在 `/data/shadowmount/config.ini`。
@@ -123,7 +123,7 @@ ShadowMount+ 由可选的外部
 ### DPI（网络包安装器）
 
 DPI v2 由可选的外部
-[`etaHEN-dpiv2-plugin`](https://github.com/OnionBuddies/onionHEN-dpiv2-plugin)
+[`etaHEN-dpiv2-plugin`](https://github.com/TOSanthony/etaHEN-2.6B)
 提供。将其安装为 `/data/etaHEN/plugins/DPIV00001.elf` 后，etaHEN 会自动发现
 并启动；插件动态设置页提供启用、API 端口、WebUI 端口和重启控制。浏览器仍是
 安装操作界面，保留分块上传、队列管理、暂存文件复用和 SSE 实时进度。默认 WebUI
@@ -397,8 +397,8 @@ etaHEN 离不开 PS5 自制软件与逆向工程社区。
 - [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero 工具链与头文件
 - [elfldr](https://github.com/ps5-payload-dev/elfldr) — 端口 9021 的首次引导加载器；不打进 payload
 - [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch、sleirsgoevy 与贡献者；可选的 `kstuff.elf`
-- [etaHEN-ftpsrv-plugin](https://github.com/OnionBuddies/onionHEN-ftpsrv-plugin) — 基于 drakmor/ftpsrv 的可选外部 FTP 插件
-- [etaHEN-shadowmountplus-plugin](https://github.com/OnionBuddies/onionHEN-shadowmountplus-plugin) — 基于 Drakmor 项目的可选外部 ShadowMount+ 扫描/挂载插件
+- [etaHEN-ftpsrv-plugin](https://github.com/TOSanthony/etaHEN-2.6B) — 基于 drakmor/ftpsrv 的可选外部 FTP 插件
+- [etaHEN-shadowmountplus-plugin](https://github.com/TOSanthony/etaHEN-2.6B) — 基于 Drakmor 项目的可选外部 ShadowMount+ 扫描/挂载插件
 - [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky；进程劫持与内核读写
 - [NineS](https://github.com/buzzer-re/NineS) — buzzer-re；注入 ShellUI
 - [cJSON](https://github.com/DaveGamble/cJSON) — JSON 解析

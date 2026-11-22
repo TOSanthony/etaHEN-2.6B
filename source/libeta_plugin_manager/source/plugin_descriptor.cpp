@@ -135,16 +135,16 @@ Inspection inspect_elf(std::span<const uint8_t> image) {
     const std::string_view name(
         reinterpret_cast<const char *>(strings.data() + name_offset),
         static_cast<size_t>(name_end - (strings.data() + name_offset)));
-    if (name != ".onion_plugin") continue;
+    if (name != ".eta_plugin") continue;
 
     if (data_offset64 > std::numeric_limits<size_t>::max() ||
         data_size64 > std::numeric_limits<size_t>::max())
-      return fail(".onion_plugin section is outside the ELF");
+      return fail(".eta_plugin section is outside the ELF");
     const size_t data_offset = static_cast<size_t>(data_offset64);
     const size_t data_size = static_cast<size_t>(data_size64);
     if (data_size < kDescriptorV1Size ||
         !range_valid(data_offset, data_size, image.size()))
-      return fail(".onion_plugin descriptor is truncated");
+      return fail(".eta_plugin descriptor is truncated");
     const auto raw = image.subspan(data_offset, data_size);
 
     Descriptor descriptor;
@@ -152,7 +152,7 @@ Inspection inspect_elf(std::span<const uint8_t> image) {
         !read_le(raw, 4, descriptor.abi_version) ||
         !read_le(raw, 8, descriptor.capabilities) ||
         !read_le(raw, 12, descriptor.flags))
-      return fail(".onion_plugin descriptor is truncated");
+      return fail(".eta_plugin descriptor is truncated");
     if (descriptor.struct_size < kDescriptorV1Size ||
         descriptor.struct_size > data_size)
       return fail("plugin descriptor struct_size is invalid");
@@ -172,7 +172,7 @@ Inspection inspect_elf(std::span<const uint8_t> image) {
     return {std::move(descriptor), {}};
   }
 
-  return fail("ELF has no .onion_plugin section");
+  return fail("ELF has no .eta_plugin section");
 }
 
 } // namespace eta::plugin

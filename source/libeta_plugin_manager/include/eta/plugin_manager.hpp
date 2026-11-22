@@ -25,7 +25,7 @@ inline constexpr uint32_t kKnownFlags = kFlagLongRunning | kFlagStopSupported;
 
 #if defined(ETA_HOST_TEST)
 #ifndef ETA_DATA_ROOT
-#define ETA_DATA_ROOT "/tmp/onionhen"
+#define ETA_DATA_ROOT "/tmp/etahen"
 #endif
 inline constexpr const char *kInstallRoot = ETA_DATA_ROOT "/plugins";
 #else

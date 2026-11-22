@@ -433,7 +433,7 @@ struct IPCMessage {
 
 ### 4.4 扩展
 
-- 自定义插件（使用 [etaHEN Plugin SDK](https://github.com/OnionBuddies/onionHEN-plugin-sdk)）
+- 自定义插件（使用 [etaHEN Plugin SDK](https://github.com/TOSanthony/etaHEN-2.6B)）
 - `config.ini` 驱动的开关（overlay、快捷键等）
 
 ## 5. 依赖组件

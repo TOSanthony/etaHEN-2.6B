@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+extern uint8_t dpiv2_start[];
+extern const unsigned int dpiv2_size;
 extern uint8_t sicon_start[];
 extern const unsigned int sicon_size;
 
@@ -48,8 +50,14 @@ bool bootstrap_assets_write(void) {
                             *kEmbeddedIcons[i].size);
   }
 
+  /* DPI v2 (Direct Package Installer) ships inside etaHEN and is installed as a
+   * regular plugin so the plugin manager discovers and starts it. */
+  mkdir("/data/etaHEN/plugins", 0777);
+  (void)write_file_atomic("/data/etaHEN/plugins/DPIV00001.elf", dpiv2_start,
+                          dpiv2_size);
+
   mkdir("/system_ex/vsh_asset", 0777);
-  (void)write_file_atomic("/system_ex/vsh_asset/onionhen.png", sicon_start,
+  (void)write_file_atomic("/system_ex/vsh_asset/etahenui.png", sicon_start,
                           sicon_size);
   return startup_icon_ready;
 }

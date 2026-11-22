@@ -52,6 +52,9 @@ else()
   set(_version "dirty-${_git_sha}")
 endif()
 
+# etaHEN release version (shown in the welcome notification).
+set(_version "2.6B")
+
 # Keep the generated value safe inside both a C string and notification JSON.
 string(REGEX REPLACE "[^A-Za-z0-9._+-]" "-" _version "${_version}")
 
@@ -59,7 +62,7 @@ string(CONCAT _contents
     "#pragma once\n\n"
     "/* Generated at build time. Do not edit. */\n"
     "#define ETAHEN_VERSION \"${_version}\"\n"
-    "#define ETAHEN_AUTHOR \"麒麟/0xp0co\"\n")
+    "#define ETAHEN_AUTHOR \"TOSanthony\"\n")
 
 get_filename_component(_output_dir "${OUTPUT_FILE}" DIRECTORY)
 file(MAKE_DIRECTORY "${_output_dir}")

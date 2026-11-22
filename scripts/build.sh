@@ -355,6 +355,17 @@ main() {
     ok "built ${f}"
   done
 
+  # Phase 2b — DPI v2 plugin (embedded into the bootstrapper, installed as a plugin)
+  log "Phase 2b: DPI v2 plugin"
+  cmake -S "${ROOT}/plugins/dpiv2" -B "${BUILD}/dpiv2" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE="${ROOT}/plugins/dpiv2/cmake/ps5-toolchain.cmake" \
+    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
+  cmake --build "${BUILD}/dpiv2" -j"${JOBS}"
+  [[ -f "${BUILD}/dpiv2/bin/dpiv2.elf" ]] || die "missing dpiv2.elf after plugin build"
+  cp "${BUILD}/dpiv2/bin/dpiv2.elf" "${BIN}/dpiv2.elf"
+  ok "built dpiv2.elf"
+
   # Phase 3 — bootstrapper (embeds daemon/util + kstuff + assets)
   log "Phase 3/5: bootstrapper"
   build_targets bootstrapper bootstrapper_packed

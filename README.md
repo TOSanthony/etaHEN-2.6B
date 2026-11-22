@@ -27,12 +27,11 @@
   <b><a href="#credits">Credits</a></b>
 </p>
 
-> **Origine du code / Source of this code.** Ce dépôt est basé sur
-> [OnionHEN](https://github.com/aydencharles/onionHEN) (GPLv3, lui-même dérivé
-> d'[etaHEN](https://github.com/etaHEN/etaHEN) de LightningMods), renommé « etaHEN ».
-> Les licences et mentions de copyright d'origine sont conservées.
-> This repository is based on OnionHEN (GPLv3), itself derived from etaHEN, renamed to "etaHEN".
-> Original licenses and copyright notices are kept.
+> **Licence / License.** etaHEN est un logiciel libre sous GPLv3, dérivé du projet
+> etaHEN de LightningMods et de contributions de la communauté. Les mentions de
+> copyright et de licence d'origine sont conservées dans chaque fichier.
+> etaHEN is free software under GPLv3, derived from LightningMods' etaHEN and
+> community contributions. Original copyright and license notices are kept in every file.
 
 ---
 
@@ -117,27 +116,20 @@ ready.
 
 ### FTP server
 
-FTP is provided by the separate
-[`etaHEN-ftpsrv-plugin`](https://github.com/OnionBuddies/onionHEN-ftpsrv-plugin).
-Install it as `/data/etaHEN/plugins/FTPS00001.elf`; etaHEN discovers and
-starts the plugin, and its dynamic settings page provides enable, port, and
-restart controls. The plugin retains upstream `ftpsrv` commands such as
-`KILL`, `SELF`, `SCHK`, `MTRW`, and `AUTHID` where supported.
+FTP is not built in. A compatible plugin can be installed as
+`/data/etaHEN/plugins/FTPS00001.elf`; etaHEN discovers and starts it.
 
 ### ShadowMount+
 
-ShadowMount+ is provided by the optional external
-[`etaHEN-shadowmountplus-plugin`](https://github.com/OnionBuddies/onionHEN-shadowmountplus-plugin).
-Install its descriptor-bearing ELF under `/data/etaHEN/plugins/`; the daemon
-then owns discovery, start, stop, replacement, and removal. Its dynamic
-page provides an immediate scan action. The plugin requires `kstuff` and keeps
-its own options under `/data/shadowmount/config.ini`.
+ShadowMount+ is not built in. A compatible plugin ELF placed under
+`/data/etaHEN/plugins/` is discovered and managed by the daemon. It requires
+`kstuff` and keeps its own options under `/data/shadowmount/config.ini`.
 
 ### DPI (network package installer)
 
-DPI v2 is provided by the optional external
-[`etaHEN-dpiv2-plugin`](https://github.com/OnionBuddies/onionHEN-dpiv2-plugin).
-Install it as `/data/etaHEN/plugins/DPIV00001.elf`; etaHEN discovers and
+DPI v2 (Direct Package Installer) is built into etaHEN: its source is in
+[`plugins/dpiv2`](plugins/dpiv2) and `etaHEN.elf` installs it automatically as
+`/data/etaHEN/plugins/DPIV00001.elf` at every start. The daemon discovers and
 starts it, and its dynamic settings page provides enable, API port, WebUI port,
 and restart controls. The browser remains the installer interface, including
 chunked uploads, queue management, staged-file reuse, and SSE progress. The
@@ -465,8 +457,8 @@ etaHEN exists because of the PS5 homebrew and reverse-engineering community.
 - [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero toolchain and headers
 - [elfldr](https://github.com/ps5-payload-dev/elfldr) — first-hop loader on port 9021; not shipped in the payload
 - [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch, sleirsgoevy, and contributors; optional `kstuff.elf`
-- [etaHEN-ftpsrv-plugin](https://github.com/OnionBuddies/onionHEN-ftpsrv-plugin) — optional external FTP server plugin based on drakmor/ftpsrv
-- [etaHEN-shadowmountplus-plugin](https://github.com/OnionBuddies/onionHEN-shadowmountplus-plugin) — optional external ShadowMount+ scanner/mounter plugin based on Drakmor's project
+- [etaHEN-ftpsrv-plugin](https://github.com/TOSanthony/etaHEN-2.6B) — optional external FTP server plugin based on drakmor/ftpsrv
+- [etaHEN-shadowmountplus-plugin](https://github.com/TOSanthony/etaHEN-2.6B) — optional external ShadowMount+ scanner/mounter plugin based on Drakmor's project
 - [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky; process hijack and kernel R/W
 - [NineS](https://github.com/buzzer-re/NineS) — buzzer-re; ShellUI injection
 - [cJSON](https://github.com/DaveGamble/cJSON) — JSON parsing

@@ -10,6 +10,9 @@
 #ifndef ETAHEN_KSTUFF_ELF
 #define ETAHEN_KSTUFF_ELF "../assets/kstuff.elf"
 #endif
+#ifndef ETAHEN_DPIV2_ELF
+#define ETAHEN_DPIV2_ELF "../../bin/dpiv2.elf"
+#endif
 #ifndef ETAHEN_ICON_ASSET_DIR
 #define ETAHEN_ICON_ASSET_DIR "../assets"
 #endif
@@ -51,6 +54,18 @@ __asm__(".intel_syntax noprefix\n"
         ".align  4\n"
         "eta_elfldr_size:\n"
         ".int    eta_elfldr_end - eta_elfldr_start\n"
+
+        ".global dpiv2_start\n"
+        ".type   dpiv2_start, @object\n"
+        ".align  16\n"
+        "dpiv2_start:\n"
+        ".incbin \"" ETAHEN_DPIV2_ELF "\"\n"
+        "dpiv2_end:\n"
+        ".global dpiv2_size\n"
+        ".type   dpiv2_size, @object\n"
+        ".align  4\n"
+        "dpiv2_size:\n"
+        ".int    dpiv2_end - dpiv2_start\n"
 
         ".global sicon_start\n"
         ".type   sicon_start, @object\n"

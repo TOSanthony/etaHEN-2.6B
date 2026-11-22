@@ -19,8 +19,8 @@
 
 std::string Mono_to_String(MonoString *str);
 
-static constexpr const char kHomeTopNavUri[] = "OnionHEN?NavUI=1";
-static constexpr const char kLegacyHomeTopNavUri[] = "OnionHEN?NavUI";
+static constexpr const char kHomeTopNavUri[] = "etaHENUI?NavUI=1";
+static constexpr const char kLegacyHomeTopNavUri[] = "etaHENUI?NavUI";
 
 static bool is_home_top_nav_uri(const std::string &uri) {
   return uri == kHomeTopNavUri || uri == kLegacyHomeTopNavUri;
