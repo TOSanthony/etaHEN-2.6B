@@ -44,6 +44,8 @@ jobs:
           ls -l "${DESTDIR}/${PREFIX}/lib/libcrypto.a" "${DESTDIR}/${PREFIX}/lib/libssl.a"
 
       - name: Prepare Assets
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p "Source Code/util/assets" "Source Code/daemon/assets"
           wget https://github.com/john-tornblom/ps5-payload-elfldr/releases/download/release/v0.11/Payload.zip
@@ -57,7 +59,11 @@ jobs:
           open("Source Code/daemon/assets/ps5debug.elf", "wb").write(data)
           print("ps5debug.elf:", len(data), "bytes")
           PY
-          wget -O "Source Code/daemon/assets/ps5-app-dumper.elf" https://github.com/EchoStretch/ps5-app-dumper/releases/latest/download/ps5-app-dumper.elf
+          # Resolve the real asset name of the latest release instead of guessing it.
+          url=$(gh api repos/EchoStretch/ps5-app-dumper/releases/latest --jq '.assets[].browser_download_url' | grep -i '\.elf$' | head -n1)
+          echo "dumper asset: $url"
+          test -n "$url"
+          wget -O "Source Code/daemon/assets/ps5-app-dumper.elf" "$url"
           head -c 4 "Source Code/daemon/assets/ps5-app-dumper.elf" | grep -q ELF
 
       - name: Build etaHEN
