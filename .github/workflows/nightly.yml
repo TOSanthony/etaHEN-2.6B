@@ -103,10 +103,23 @@ jobs:
           export PATH="/usr/lib/llvm-$LLVM_VERSION/bin:$PS5_PAYLOAD_SDK/bin:$PATH"
           ./scripts/build.sh --release --jobs "$(nproc)"
 
+      - name: Collect etaHEN.elf and the plugin ELFs
+        run: |
+          # Plugins are named after their plugin ID: copy them as-is into
+          # /data/etaHEN/plugins/ to reinstall one without reloading etaHEN.
+          mkdir -p dist
+          cp build/bin/etaHEN.elf dist/etaHEN.elf
+          cp build/bin/dpiv2.elf    dist/DPIV00001.elf
+          cp build/bin/ftpsrv.elf   dist/FTPS00001.elf
+          cp build/bin/ntp.elf      dist/NTPS00001.elf
+          cp build/bin/dashplug.elf dist/DASH00001.elf
+          cp build/bin/mgallery.elf dist/MGAL00001.elf
+          ls -l dist
+
       - uses: actions/upload-artifact@v7
         with:
           name: etaHEN-nightly
-          path: build/bin/etaHEN.elf
+          path: dist/
           if-no-files-found: error
           retention-days: 7
 
@@ -143,6 +156,7 @@ jobs:
               echo "- Changes since $stable: [\`$stable...$short\`]($url/compare/$stable...$GITHUB_SHA)"
             fi
             echo "- \`etaHEN.elf\` SHA-256: \`$(sha256sum etaHEN.elf | cut -d' ' -f1)\`"
+            echo "- Plugin ELFs (DPI v2, FTP, NTP, Dashboard, Media Gallery) are attached too: copy one to \`/data/etaHEN/plugins/\` to reinstall it."
           } > notes.md
 
           if gh release view nightly >/dev/null 2>&1; then
@@ -152,10 +166,10 @@ jobs:
               gh release delete-asset nightly "$asset" --yes
             done
             gh release edit nightly --title "Nightly build ($short)" --notes-file notes.md --prerelease
-            gh release upload nightly etaHEN.elf
+            gh release upload nightly etaHEN.elf DPIV00001.elf FTPS00001.elf NTPS00001.elf DASH00001.elf MGAL00001.elf
           else
             # First run (or the release was deleted): drop any stale tag, then create.
             gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/nightly" >/dev/null 2>&1 || true
-            gh release create nightly etaHEN.elf --target "$GITHUB_SHA" --prerelease \
+            gh release create nightly etaHEN.elf DPIV00001.elf FTPS00001.elf NTPS00001.elf DASH00001.elf MGAL00001.elf --target "$GITHUB_SHA" --prerelease \
               --title "Nightly build ($short)" --notes-file notes.md
           fi
