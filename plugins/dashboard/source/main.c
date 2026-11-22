@@ -201,9 +201,10 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
     case PLUGIN_UI_ACTION_SET_HUB: app->settings.hub = action->value; break;
     case PLUGIN_UI_ACTION_SET_KEEP: app->settings.keep = action->value; break;
     case PLUGIN_UI_ACTION_SET_NOTIFY: app->settings.notify = action->value; break;
+    case PLUGIN_UI_ACTION_SET_RESTART: app->settings.restart_shell = action->value; break;
     case PLUGIN_UI_ACTION_SET_BRIDGE:
         app->settings.bridge = action->value;
-        if (action->value && wh_runner_start() != 0)
+        if (action->value && wh_runner_start(0) != 0)
             log_message(app, "[%s] failed to start Welcome Hub bridge\n", PLUGIN_ID);
         break;
     case PLUGIN_UI_ACTION_NONE: return ETA_E_NOT_FOUND;
@@ -274,7 +275,7 @@ int main(void) {
                     app.settings.keep, (unsigned long long)app.ui_handle);
         apply_tiles(&app, 1);
         if (app.settings.bridge) {
-            if (wh_runner_start() != 0)
+            if (wh_runner_start(app.settings.restart_shell) != 0)
                 log_message(&app, "[%s] failed to start Welcome Hub bridge\n", PLUGIN_ID);
             else
                 log_message(&app, "[%s] Welcome Hub bridge started\n", PLUGIN_ID);

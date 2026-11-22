@@ -14,7 +14,8 @@ typedef enum plugin_ui_action_kind {
     PLUGIN_UI_ACTION_SET_HUB,
     PLUGIN_UI_ACTION_SET_KEEP,
     PLUGIN_UI_ACTION_SET_NOTIFY,
-    PLUGIN_UI_ACTION_SET_BRIDGE
+    PLUGIN_UI_ACTION_SET_BRIDGE,
+    PLUGIN_UI_ACTION_SET_RESTART
 } plugin_ui_action_kind;
 
 typedef struct plugin_ui_action {

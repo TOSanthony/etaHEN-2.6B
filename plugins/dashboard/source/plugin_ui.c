@@ -47,6 +47,11 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s) {
                     "(/data/wh-widgets). Remplace wh_bridge.elf, relance a chaque demarrage. "
                     "Desactiver prend effet au prochain demarrage.", s->bridge);
     if (st != ETA_OK) return st;
+    st = add_toggle(doc, "restart", "restart_changed", "Redemarrer le shell apres injection",
+                    "Une fois le Welcome Hub injecte, redemarre SceShellUI une seule fois puis "
+                    "reinjecte (evite de changer de profil). Experimental. Prend effet au prochain "
+                    "demarrage du plugin.", s->restart_shell);
+    if (st != ETA_OK) return st;
     st = add_toggle(doc, "store", "store_changed", "PlayStation Store",
                     "Afficher la tuile PlayStation Store sur l'accueil.", s->store);
     if (st != ETA_OK) return st;
@@ -112,7 +117,7 @@ eta_status plugin_ui_decode_action(eta_ui_handle handle, const eta_ui_event_v1 *
     static const struct { const char *id; plugin_ui_action_kind kind; } map[] = {
         {"store", PLUGIN_UI_ACTION_SET_STORE}, {"plus", PLUGIN_UI_ACTION_SET_PLUS},
         {"hub", PLUGIN_UI_ACTION_SET_HUB},     {"keep", PLUGIN_UI_ACTION_SET_KEEP},
-        {"notify", PLUGIN_UI_ACTION_SET_NOTIFY}, {"bridge", PLUGIN_UI_ACTION_SET_BRIDGE},
+        {"notify", PLUGIN_UI_ACTION_SET_NOTIFY}, {"bridge", PLUGIN_UI_ACTION_SET_BRIDGE}, {"restart", PLUGIN_UI_ACTION_SET_RESTART},
     };
     for (size_t i = 0; i < sizeof(map) / sizeof(map[0]); ++i) {
         if (strcmp(event->node_id, map[i].id) == 0) {

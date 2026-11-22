@@ -1,5 +1,6 @@
 #pragma once
 
-/* Starts the Welcome Hub bridge in a background thread (idempotent).
+/* Starts the Welcome Hub bridge in a background thread (idempotent). If restart_shell is set, SceShellUI is restarted once after
+ * the first injection and the bridge is injected again into the new shell.
  * Returns 0 on success, -1 if the thread could not be created. */
-int wh_runner_start(void);
+int wh_runner_start(int restart_shell);

@@ -13,6 +13,7 @@ void plugin_settings_defaults(plugin_settings *s) {
     s->keep = 1;
     s->notify = 0;
     s->bridge = 1;
+    s->restart_shell = 0;
 }
 
 static int parse_bool(const char *v, int *out) {
@@ -39,6 +40,7 @@ int plugin_settings_load(const char *path, plugin_settings *s) {
         else if (!strcmp(k, "hub")) parse_bool(v, &s->hub);
         else if (!strcmp(k, "keep")) parse_bool(v, &s->keep);
         else if (!strcmp(k, "notify")) parse_bool(v, &s->notify);
+        else if (!strcmp(k, "restart_shell")) parse_bool(v, &s->restart_shell);
         else if (!strcmp(k, "bridge")) parse_bool(v, &s->bridge);
     }
     return fclose(f) == 0 ? 0 : -1;
@@ -51,8 +53,8 @@ int plugin_settings_save(const char *path, const plugin_settings *s) {
     if (len < 0 || (size_t)len >= sizeof tmp) return -1;
     FILE *f = fopen(tmp, "w");
     if (!f) return -1;
-    int r = fprintf(f, "store=%d\nplus=%d\nhub=%d\nkeep=%d\nnotify=%d\nbridge=%d\n",
-                    s->store, s->plus, s->hub, s->keep, s->notify, s->bridge) < 0 ? -1 : 0;
+    int r = fprintf(f, "store=%d\nplus=%d\nhub=%d\nkeep=%d\nnotify=%d\nbridge=%d\nrestart_shell=%d\n",
+                    s->store, s->plus, s->hub, s->keep, s->notify, s->bridge, s->restart_shell) < 0 ? -1 : 0;
     if (r == 0 && fflush(f) != 0) r = -1;
     if (r == 0 && fsync(fileno(f)) != 0) r = -1;
     if (fclose(f) != 0) r = -1;
