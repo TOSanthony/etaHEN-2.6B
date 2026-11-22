@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include "dash_appdb.h"
+#include "wh_runner.h"
 #include "plugin_config.h"
 #include "plugin_settings.h"
 #include "plugin_ui.h"
@@ -200,6 +201,11 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
     case PLUGIN_UI_ACTION_SET_HUB: app->settings.hub = action->value; break;
     case PLUGIN_UI_ACTION_SET_KEEP: app->settings.keep = action->value; break;
     case PLUGIN_UI_ACTION_SET_NOTIFY: app->settings.notify = action->value; break;
+    case PLUGIN_UI_ACTION_SET_BRIDGE:
+        app->settings.bridge = action->value;
+        if (action->value && wh_runner_start() != 0)
+            log_message(app, "[%s] failed to start Welcome Hub bridge\n", PLUGIN_ID);
+        break;
     case PLUGIN_UI_ACTION_NONE: return ETA_E_NOT_FOUND;
     }
     save_settings(app);
@@ -267,6 +273,12 @@ int main(void) {
                     PLUGIN_ID, app.settings.store, app.settings.plus, app.settings.hub,
                     app.settings.keep, (unsigned long long)app.ui_handle);
         apply_tiles(&app, 1);
+        if (app.settings.bridge) {
+            if (wh_runner_start() != 0)
+                log_message(&app, "[%s] failed to start Welcome Hub bridge\n", PLUGIN_ID);
+            else
+                log_message(&app, "[%s] Welcome Hub bridge started\n", PLUGIN_ID);
+        }
         exit_code = run_event_loop(&app);
     } else {
         log_message(&app, "[%s] startup failed: %s\n", PLUGIN_ID,

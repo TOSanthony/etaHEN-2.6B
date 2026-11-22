@@ -7,7 +7,9 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 extern uint8_t dpiv2_start[];
 extern const unsigned int dpiv2_size;
@@ -69,8 +71,19 @@ bool bootstrap_assets_write(void) {
                           ntp_size);
 
   /* Dashboard plugin (DASH00001): show/hide Store, Plus and Welcome Hub tiles. */
-  (void)write_file_atomic("/data/etaHEN/plugins/DASH00001.elf", dashplug_start,
-                          dashplug_size);
+  {
+    /* Auto-start by default on first install only (the user can still turn it
+     * off from the plugin page; the marker is then left alone). */
+    const bool first_install =
+        access("/data/etaHEN/plugins/DASH00001.elf", F_OK) != 0;
+    (void)write_file_atomic("/data/etaHEN/plugins/DASH00001.elf", dashplug_start,
+                            dashplug_size);
+    if (first_install) {
+      int fd = open("/data/etaHEN/plugins/DASH00001.elf.auto_start",
+                    O_WRONLY | O_CREAT, 0666);
+      if (fd >= 0) close(fd);
+    }
+  }
 
   mkdir("/system_ex/vsh_asset", 0777);
   (void)write_file_atomic("/system_ex/vsh_asset/etahenui.png", sicon_start,

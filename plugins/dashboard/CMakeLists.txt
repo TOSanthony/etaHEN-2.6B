@@ -42,14 +42,27 @@ eta_add_plugin(
         source/plugin_descriptor.c
         source/plugin_settings.c
         source/plugin_ui.c
+        source/wh_embed.c
+        source/wh_runner.c
         third_party/sqlite3.c
+        third_party/wh_bridge/util.c
+        third_party/wh_bridge/remote.c
+        third_party/wh_bridge/hookpoint.c
+        third_party/wh_bridge/prelude.c
+        third_party/wh_bridge/server.c
+        third_party/wh_bridge/tiles.c
+        third_party/wh_bridge/applist.c
+        third_party/wh_bridge/install.c
     INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/third_party"
+        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/wh_bridge"
         "${CMAKE_CURRENT_BINARY_DIR}/generated"
     LIBRARIES
         SceLibcInternal
         SceSystemService
+        SceUserService
+        SceNet
         SceNotification
         kernel_sys)
 
@@ -57,3 +70,16 @@ eta_add_plugin(
 set_source_files_properties(third_party/sqlite3.c PROPERTIES
     COMPILE_OPTIONS "-w;-Wno-error;-O2"
     COMPILE_DEFINITIONS "SQLITE_THREADSAFE=0;SQLITE_OMIT_LOAD_EXTENSION;SQLITE_OMIT_SHARED_CACHE;SQLITE_TEMP_STORE=3")
+
+# Welcome Hub bridge (TOSanthony/dashboard sources): third-party style code,
+# built with -Wall only (no -Wextra/-Werror).
+set(_wh_dir "${CMAKE_CURRENT_SOURCE_DIR}/third_party/wh_bridge")
+set_source_files_properties(
+    "${_wh_dir}/util.c" "${_wh_dir}/remote.c" "${_wh_dir}/hookpoint.c"
+    "${_wh_dir}/prelude.c" "${_wh_dir}/server.c" "${_wh_dir}/tiles.c"
+    "${_wh_dir}/applist.c" "${_wh_dir}/install.c"
+    source/wh_runner.c
+    PROPERTIES COMPILE_OPTIONS "-Wno-error;-Wno-unused-parameter;-Wno-sign-compare;-Wno-missing-field-initializers")
+set_source_files_properties(source/wh_embed.c PROPERTIES
+    COMPILE_DEFINITIONS "WH_EMBED_DIR=\"${_wh_dir}\""
+    OBJECT_DEPENDS "${_wh_dir}/bridge.hbc;${_wh_dir}/loader.js")

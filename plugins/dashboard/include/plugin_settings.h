@@ -6,6 +6,7 @@ typedef struct plugin_settings {
     int hub;     /* Welcome Hub tile visible (NPXS40063) */
     int keep;    /* re-apply periodically so the shell cannot revert */
     int notify;
+    int bridge;  /* Welcome Hub bridge: forced signed-in patch + widgets (replaces wh_bridge.elf) */
 } plugin_settings;
 
 void plugin_settings_defaults(plugin_settings *settings);
