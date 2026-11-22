@@ -7,6 +7,7 @@ typedef struct plugin_settings {
     int keep;    /* re-apply periodically so the shell cannot revert */
     int notify;
     int restart_shell; /* restart SceShellUI once after the bridge injected, then re-inject */
+    int restart_delay; /* seconds to wait after injection before restarting the shell */
     int bridge;  /* Welcome Hub bridge: forced signed-in patch + widgets (replaces wh_bridge.elf) */
 } plugin_settings;
 

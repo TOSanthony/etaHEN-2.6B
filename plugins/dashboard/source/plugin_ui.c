@@ -1,6 +1,7 @@
 #include "plugin_ui.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "plugin_config.h"
@@ -51,6 +52,19 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s) {
                     "Une fois le Welcome Hub injecte, redemarre SceShellUI une seule fois puis "
                     "reinjecte (evite de changer de profil). Experimental. Prend effet au prochain "
                     "demarrage du plugin.", s->restart_shell);
+    if (st != ETA_OK) return st;
+    node = make_node(ETA_UI_NODE_INPUT, "restart_delay", "main", "Delai avant redemarrage du shell (s)");
+    node.value_type = ETA_UI_VALUE_INT;
+    node.binding = ETA_UI_BINDING_EVENT;
+    node.min_value = 5;
+    node.max_value = 300;
+    node.min_length = 1;
+    node.max_length = 3;
+    snprintf(node.binding_key, sizeof(node.binding_key), "restart_delay_changed");
+    snprintf(node.value, sizeof(node.value), "%d", s->restart_delay);
+    snprintf(node.description, sizeof(node.description), "%s",
+             "Secondes d'attente apres l'injection avant de redemarrer le shell (5 a 300).");
+    st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
     st = add_toggle(doc, "store", "store_changed", "PlayStation Store",
                     "Afficher la tuile PlayStation Store sur l'accueil.", s->store);
@@ -112,6 +126,15 @@ eta_status plugin_ui_decode_action(eta_ui_handle handle, const eta_ui_event_v1 *
 
     if (strcmp(event->node_id, "apply_now") == 0) {
         out->kind = PLUGIN_UI_ACTION_APPLY_NOW;
+        return ETA_OK;
+    }
+    if (strcmp(event->node_id, "restart_delay") == 0) {
+        if (event->value_type != ETA_UI_VALUE_INT) return ETA_E_INVALID_ARGUMENT;
+        char *end = NULL;
+        long v = strtol(event->value, &end, 10);
+        if (end == event->value || *end != '\0' || v < 5 || v > 300) return ETA_E_INVALID_ARGUMENT;
+        out->kind = PLUGIN_UI_ACTION_SET_RESTART_DELAY;
+        out->value = (int)v;
         return ETA_OK;
     }
     static const struct { const char *id; plugin_ui_action_kind kind; } map[] = {

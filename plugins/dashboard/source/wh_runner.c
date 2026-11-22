@@ -16,6 +16,7 @@
 static pthread_t g_thread;
 static volatile int g_started = 0;
 static int g_restart_shell = 0;
+static int g_restart_delay = 30;
 
 extern int sceKernelTerminateProcess(int pid, int *ret);
 #define DECID_AUTH_ID UINT64_C(0x4800000000000022)
@@ -54,6 +55,12 @@ static void *bridge_thread(void *arg) {
     else snprintf(wsum, sizeof wsum, "\nWidgets: %d loaded", g_wok);
   }
   if (rc == 0 && g_restart_shell) {
+    LOG("restart: waiting %d s before restarting SceShellUI (pid %d)\n", g_restart_delay, (int)pid);
+    sleep((unsigned)g_restart_delay);
+    {
+      pid_t cur = find_pid("SceShellUI");
+      if (cur > 0) pid = cur; /* the shell may have been restarted meanwhile */
+    }
     LOG("restart: restarting SceShellUI (pid %d) after injection\n", (int)pid);
     if (restart_shellui(pid) == 0) {
       pid_t np = -1;
@@ -91,9 +98,10 @@ static void *bridge_thread(void *arg) {
   return NULL;
 }
 
-int wh_runner_start(int restart_shell) {
+int wh_runner_start(int restart_shell, int restart_delay_s) {
   if (g_started) return 0;
   g_restart_shell = restart_shell;
+  g_restart_delay = restart_delay_s >= 5 ? restart_delay_s : 30;
   if (pthread_create(&g_thread, NULL, bridge_thread, NULL) != 0) return -1;
   pthread_detach(g_thread);
   g_started = 1;
