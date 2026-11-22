@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
@@ -24,11 +24,39 @@ jobs:
           wget https://github.com/ps5-payload-dev/sdk/releases/latest/download/ps5-payload-sdk.zip
           sudo unzip -d /opt ps5-payload-sdk.zip
 
+      - name: Build OpenSSL (static) for the PS5 SDK
+        # util.elf links -lcrypto -lssl, which the SDK archive does not ship.
+        # Same recipe as ps5-payload-dev/pacbrew-repo (openssl/PKGBUILD).
+        run: |
+          sudo chown -R "$USER" /opt/ps5-payload-sdk
+          export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+          source "$PS5_PAYLOAD_SDK/toolchain/prospero.sh"
+          echo "PREFIX=${PREFIX:-} DESTDIR=${DESTDIR:-} MAKE=${MAKE:-}"
+          wget -q https://github.com/openssl/openssl/releases/download/openssl-3.5.2/openssl-3.5.2.tar.gz
+          echo "c53a47e5e441c930c3928cf7bf6fb00e5d129b630e0aa873b08258656e7345ec  openssl-3.5.2.tar.gz" | sha256sum -c -
+          tar xf openssl-3.5.2.tar.gz
+          cd openssl-3.5.2
+          ./Configure BSD-x86_64 no-tests no-apps no-shared --prefix="${PREFIX}"
+          ${MAKE:-make} -j"$(nproc)" build_sw
+          ${MAKE:-make} install_sw DESTDIR=
+          ls -l "${PREFIX}/lib/libcrypto.a" "${PREFIX}/lib/libssl.a"
+
       - name: Prepare Assets
         run: |
-          mkdir -p "Source Code/util/assets"
+          mkdir -p "Source Code/util/assets" "Source Code/daemon/assets"
           wget https://github.com/john-tornblom/ps5-payload-elfldr/releases/download/release/v0.11/Payload.zip
           unzip -o Payload.zip elfldr.elf -d "Source Code/util/assets/"
+          # ps5debug.elf is only stored as a C array in the repo; rebuild the ELF from it.
+          python3 - <<'PY'
+          import re
+          text = open("Source Code/lib/ps5debug.elf.h").read()
+          data = bytes(int(x, 16) for x in re.findall(r"0x([0-9a-fA-F]{2})", text))
+          assert data[:4] == b"\x7fELF", "ps5debug.elf.h does not hold an ELF"
+          open("Source Code/daemon/assets/ps5debug.elf", "wb").write(data)
+          print("ps5debug.elf:", len(data), "bytes")
+          PY
+          wget -O "Source Code/daemon/assets/ps5-app-dumper.elf" https://github.com/EchoStretch/ps5-app-dumper/releases/latest/download/ps5-app-dumper.elf
+          head -c 4 "Source Code/daemon/assets/ps5-app-dumper.elf" | grep -q ELF
 
       - name: Build etaHEN
         run: |
@@ -36,22 +64,23 @@ jobs:
           export CC=clang-18
           export CXX=clang++-18
           export LLD=lld-18
-          
+
           cd "Source Code"
-          mkdir -p build/shellui build/util
-          
+          mkdir -p build/shellui build/util build/daemon
+
           # Create symlinks so .incbin can find assets inside build dir
           ln -s "../../shellui/assets" "build/shellui/assets"
           ln -s "../../util/assets" "build/util/assets"
-          
+          ln -s "../../daemon/assets" "build/daemon/assets"
+
           cd build
-          
+
           $PS5_PAYLOAD_SDK/bin/prospero-cmake ..
-          
+
           make -j$(nproc)
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: etaHEN-Build
           path: |
