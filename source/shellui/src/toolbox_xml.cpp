@@ -911,12 +911,12 @@ void append_toolbox_debug_group(ps5ui::Group& g) {
 void append_toolbox_about_group(ps5ui::Group& g) {
   /* About page: etaHEN 2.5 layout/text, with this build's version string. */
   const std::string ver = std::string("★ etaHEN ") + ETAHEN_VERSION;
-  const auto C = ps5ui::Style::Center;
-  const auto L = ps5ui::Style::Left;
+  constexpr auto C = ps5ui::Style::Center;
+  constexpr auto L = ps5ui::Style::Left;
 
   g.group(
        "id_donation_methods", "Support the Project",
-       [C](ps5ui::Group& d) {
+       [](ps5ui::Group& d) {
          d.label("id_method_info", "★ Donation Methods", C)
              .label("id_method_1",
                     "- GitHub Sponsors  | https://github.com/sponsors/LightningMods",
@@ -925,7 +925,7 @@ void append_toolbox_about_group(ps5ui::Group& g) {
        "Do you like the project? Consider Donating", kIconDonations)
       .group(
           "id_etahen_credits", "etaHEN Credits",
-          [C, L, ver](ps5ui::Group& c) {
+          [ver](ps5ui::Group& c) {
             c.label("id_etahen_creds_display", ver, C)
                 .label("id_lead_devs", "★ Lead Developer(s) ★", C)
                 .label("id_lead_devs_2",
@@ -989,7 +989,7 @@ void append_toolbox_about_group(ps5ui::Group& g) {
           "Credits and Supporters", kIconThanks)
       .group(
           "id_inc_project", "Projects included in etaHEN",
-          [C](ps5ui::Group& p) {
+          [](ps5ui::Group& p) {
             p.label("id_project_info",
                     "★ Open and Closed Source Projects used in etaHEN", C)
                 .label("id_project_1",
