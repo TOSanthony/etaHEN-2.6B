@@ -2,19 +2,30 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "plugin_config.h"
 
 #define CONTRIBUTION_ID "settings"
 
-const updatable_plugin kUpdatablePlugins[] = {
+typedef struct known_plugin {
+    const char *id;
+    const char *label;
+} known_plugin;
+
+static const known_plugin kKnown[] = {
     {"DPIV00001", "DPI v2"},
     {"FTPS00001", "Serveur FTP"},
     {"NTPS00001", "NTP (heure)"},
     {"DASH00001", "Dashboard"},
     {"MGAL00001", "Media Gallery"},
 };
-const unsigned kUpdatablePluginCount = sizeof(kUpdatablePlugins) / sizeof(kUpdatablePlugins[0]);
+
+const char *plugin_label(const char *id) {
+    for (unsigned i = 0; i < sizeof(kKnown) / sizeof(kKnown[0]); ++i)
+        if (strcmp(kKnown[i].id, id) == 0) return kKnown[i].label;
+    return id;
+}
 
 static eta_ui_node_desc_v1 make_node(uint32_t kind, const char *id, const char *parent_id,
                                      const char *title) {
@@ -39,7 +50,8 @@ static eta_status add_action(eta_ui_document *doc, const char *id, const char *k
     return eta_ui_document_add_node(doc, &node);
 }
 
-static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s) {
+static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
+                            const plugin_list *list, const char *status_text) {
     eta_ui_node_desc_v1 node = make_node(ETA_UI_NODE_PAGE, "main", NULL, "Mises a jour des plugins");
     eta_status st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
@@ -47,7 +59,19 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s) {
     node = make_node(ETA_UI_NODE_LABEL, "about", "main", "A propos");
     snprintf(node.description, sizeof(node.description), "%s",
              "Telecharge les plugins depuis les releases GitHub " UPDATE_REPO
-             " et les installe. Redemarre ensuite le plugin concerne.");
+             ". La liste est lue dans la release : un nouveau plugin y apparait tout seul.");
+    st = eta_ui_document_add_node(doc, &node);
+    if (st != ETA_OK) return st;
+
+    /* Live status line (download progress): a disabled read-only field. */
+    node = make_node(ETA_UI_NODE_INPUT, "status", "main", "Statut");
+    node.value_type = ETA_UI_VALUE_STRING;
+    node.flags = ETA_UI_NODE_FLAG_DISABLED;
+    node.binding = ETA_UI_BINDING_EVENT;
+    node.min_length = 0;
+    node.max_length = 96;
+    snprintf(node.binding_key, sizeof(node.binding_key), "status_edited");
+    snprintf(node.value, sizeof(node.value), "%s", status_text && status_text[0] ? status_text : "Pret");
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 
@@ -71,15 +95,23 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s) {
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 
+    st = add_action(doc, "refresh", "refresh_requested", "Actualiser la liste",
+                    list->from_release ? "Relit la liste des plugins dans la release."
+                                       : "Liste de secours : impossible de lire la release, reessaie.");
+    if (st != ETA_OK) return st;
     st = add_action(doc, "install_all", "install_all_requested", "Tout installer / mettre a jour",
                     "Telecharge et installe tous les plugins de la liste.");
     if (st != ETA_OK) return st;
-    for (unsigned i = 0; i < kUpdatablePluginCount; ++i) {
-        char id[32], key[48], title[64];
-        snprintf(id, sizeof id, "install_%s", kUpdatablePlugins[i].id);
-        snprintf(key, sizeof key, "install_%s_requested", kUpdatablePlugins[i].id);
-        snprintf(title, sizeof title, "Installer : %s", kUpdatablePlugins[i].label);
-        st = add_action(doc, id, key, title, "Telecharge et remplace ce plugin.");
+    for (unsigned i = 0; i < list->count; ++i) {
+        char id[64], key[64], title[96], path[96], desc[64];
+        snprintf(id, sizeof id, "install_%s", list->ids[i]);
+        snprintf(key, sizeof key, "install_%s_requested", list->ids[i]);
+        snprintf(path, sizeof path, PLUGINS_DIR "/%s.elf", list->ids[i]);
+        int installed = access(path, F_OK) == 0;
+        snprintf(title, sizeof title, "%s : %s", installed ? "Mettre a jour" : "Installer",
+                 plugin_label(list->ids[i]));
+        snprintf(desc, sizeof desc, "%s.elf", list->ids[i]);
+        st = add_action(doc, id, key, title, desc);
         if (st != ETA_OK) return st;
     }
     return add_action(doc, "restore", "restore_requested", "Restaurer les versions integrees",
@@ -87,8 +119,9 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s) {
                       "les versions telechargees.");
 }
 
-eta_status plugin_ui_create(const plugin_settings *settings, eta_ui_document **out_document) {
-    if (!settings || !out_document) return ETA_E_INVALID_ARGUMENT;
+eta_status plugin_ui_create(const plugin_settings *settings, const plugin_list *list,
+                            const char *status_text, eta_ui_document **out_document) {
+    if (!settings || !list || !out_document) return ETA_E_INVALID_ARGUMENT;
 
     eta_ui_document_desc_v1 d;
     memset(&d, 0, sizeof(d));
@@ -103,7 +136,7 @@ eta_status plugin_ui_create(const plugin_settings *settings, eta_ui_document **o
 
     eta_status st = eta_ui_document_create(&d, out_document);
     if (st != ETA_OK) return st;
-    st = add_nodes(*out_document, settings);
+    st = add_nodes(*out_document, settings, list, status_text);
     if (st == ETA_OK) st = eta_ui_document_validate(*out_document);
     if (st != ETA_OK) {
         eta_ui_document_destroy(*out_document);
@@ -127,14 +160,11 @@ eta_status plugin_ui_decode_action(eta_ui_handle handle, const eta_ui_event_v1 *
     }
     if (strcmp(event->node_id, "install_all") == 0) { out->kind = PLUGIN_UI_ACTION_INSTALL_ALL; return ETA_OK; }
     if (strcmp(event->node_id, "restore") == 0) { out->kind = PLUGIN_UI_ACTION_RESTORE; return ETA_OK; }
-    for (unsigned i = 0; i < kUpdatablePluginCount; ++i) {
-        char id[32];
-        snprintf(id, sizeof id, "install_%s", kUpdatablePlugins[i].id);
-        if (strcmp(event->node_id, id) == 0) {
-            out->kind = PLUGIN_UI_ACTION_INSTALL_ONE;
-            snprintf(out->plugin_id, sizeof(out->plugin_id), "%s", kUpdatablePlugins[i].id);
-            return ETA_OK;
-        }
+    if (strcmp(event->node_id, "refresh") == 0) { out->kind = PLUGIN_UI_ACTION_REFRESH; return ETA_OK; }
+    if (strncmp(event->node_id, "install_", 8) == 0 && strlen(event->node_id) == 8 + 9) {
+        out->kind = PLUGIN_UI_ACTION_INSTALL_ONE;
+        snprintf(out->plugin_id, sizeof(out->plugin_id), "%s", event->node_id + 8);
+        return ETA_OK;
     }
     return ETA_E_NOT_FOUND;
 }

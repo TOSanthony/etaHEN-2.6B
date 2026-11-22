@@ -42,6 +42,51 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *user) {
     return n;
 }
 
+typedef struct membuf {
+    char *data;
+    size_t len;
+    size_t cap;
+} membuf;
+
+static size_t mem_cb(char *ptr, size_t size, size_t nmemb, void *user) {
+    membuf *m = (membuf *)user;
+    size_t n = size * nmemb;
+    if (m->len + n + 1 > (1u << 20)) return 0; /* 1 MiB cap */
+    if (m->len + n + 1 > m->cap) {
+        size_t cap = m->cap ? m->cap * 2 : 16384;
+        while (cap < m->len + n + 1) cap *= 2;
+        char *p = (char *)realloc(m->data, cap);
+        if (!p) return 0;
+        m->data = p;
+        m->cap = cap;
+    }
+    memcpy(m->data + m->len, ptr, n);
+    m->len += n;
+    m->data[m->len] = '\0';
+    return n;
+}
+
+typedef struct progress_ctx {
+    dl_progress_fn fn;
+    void *user;
+    unsigned last;
+} progress_ctx;
+
+static int xferinfo_cb(void *user, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal,
+                       curl_off_t ulnow) {
+    (void)ultotal;
+    (void)ulnow;
+    progress_ctx *p = (progress_ctx *)user;
+    if (!p->fn || dltotal <= 0) return 0;
+    unsigned pct = (unsigned)((dlnow * 100) / dltotal);
+    if (pct > 100) pct = 100;
+    if (pct != p->last && (pct >= p->last + 2 || pct == 100)) {
+        p->last = pct;
+        p->fn(p->user, pct, (size_t)dlnow, (size_t)dltotal);
+    }
+    return 0;
+}
+
 static int g_curl_ready = 0;
 
 static void set_detail(char *d, size_t n, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
@@ -80,18 +125,10 @@ static int looks_like_plugin(const char *path) {
     return ok;
 }
 
-dl_result downloader_install_plugin(const char *plugin_id, int channel,
-                                    char *detail, size_t detail_size) {
-    if (!valid_id(plugin_id)) {
-        set_detail(detail, detail_size, "invalid plugin id");
-        return DL_ERR_INVALID;
-    }
-    if (!g_curl_ready) {
-        if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0) {
-            set_detail(detail, detail_size, "curl init failed");
-            return DL_ERR_NETWORK;
-        }
-        g_curl_ready = 1;
+static int curl_ready(void) {
+    if (!curl_ready()) {
+        set_detail(detail, detail_size, "curl init failed");
+        return DL_ERR_NETWORK;
     }
 
     char url[256], tmp[256], dst[256];
@@ -120,24 +157,14 @@ dl_result downloader_install_plugin(const char *plugin_id, int channel,
         set_detail(detail, detail_size, "curl_easy_init failed");
         return DL_ERR_NETWORK;
     }
-    struct curl_blob ca = {
-        (void *)eta_curl_ca_bundle_start,
-        (size_t)(eta_curl_ca_bundle_end - eta_curl_ca_bundle_start),
-        CURL_BLOB_NOCOPY};
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "etaHEN-plugin-updater");
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt(curl, CURLOPT_CAINFO_BLOB, &ca);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
-    curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "https");
-    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "https");
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 20L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 180L);
+    struct curl_blob ca;
+    common_setup(curl, url, &ca, 180L);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+    progress_ctx pctx = {progress, progress_user, 101};
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xferinfo_cb);
+    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &pctx);
 
     CURLcode rc = curl_easy_perform(curl);
     long http = 0;
