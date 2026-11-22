@@ -399,6 +399,17 @@ main() {
   cp "${BUILD}/dashboard/bin/dashboard.elf" "${BIN}/dashplug.elf"
   ok "built dashplug.elf"
 
+  # Phase 2f — Media Gallery plugin (embedded into the bootstrapper)
+  log "Phase 2f: Media Gallery plugin"
+  cmake -S "${ROOT}/plugins/mediagallery" -B "${BUILD}/mediagallery" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE="${ROOT}/plugins/mediagallery/cmake/ps5-toolchain.cmake" \
+    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
+  cmake --build "${BUILD}/mediagallery" -j"${JOBS}"
+  [[ -f "${BUILD}/mediagallery/bin/MGAL00001.elf" ]] || die "missing MGAL00001.elf after plugin build"
+  cp "${BUILD}/mediagallery/bin/MGAL00001.elf" "${BIN}/mgallery.elf"
+  ok "built mgallery.elf"
+
   # Phase 3 — bootstrapper (embeds daemon/util + kstuff + assets)
   log "Phase 3/5: bootstrapper"
   build_targets bootstrapper bootstrapper_packed

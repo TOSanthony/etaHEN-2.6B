@@ -1,0 +1,13 @@
+#pragma once
+
+#define PLUGIN_ID "@ETA_PLUGIN_ID@"
+#define PLUGIN_VERSION "@ETA_PLUGIN_VERSION@"
+#define PLUGIN_NAME "@ETA_PLUGIN_NAME@"
+#define PLUGIN_LOG_PATH "/data/etaHEN/@ETA_PLUGIN_ID@.log"
+#define PLUGIN_SETTINGS_PATH "/data/etaHEN/plugins/@ETA_PLUGIN_ID@.ini"
+
+/* HTTP listener. Deliberately avoids 1337/2121/21, which the FTP plugins use. */
+#define PLUGIN_DEFAULT_PORT 8380
+
+/* Read-only media root owned by the system. Never write here. */
+#define PLUGIN_MEDIA_ROOT "/user/av_contents"

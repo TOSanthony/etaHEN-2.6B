@@ -19,6 +19,9 @@
 #ifndef ETAHEN_DASHPLUG_ELF
 #define ETAHEN_DASHPLUG_ELF "../../bin/dashplug.elf"
 #endif
+#ifndef ETAHEN_MGALLERY_ELF
+#define ETAHEN_MGALLERY_ELF "../../bin/mgallery.elf"
+#endif
 #ifndef ETAHEN_DPIV2_ELF
 #define ETAHEN_DPIV2_ELF "../../bin/dpiv2.elf"
 #endif
@@ -111,6 +114,18 @@ __asm__(".intel_syntax noprefix\n"
         ".align  4\n"
         "dashplug_size:\n"
         ".int    dashplug_end - dashplug_start\n"
+
+        ".global mgallery_start\n"
+        ".type   mgallery_start, @object\n"
+        ".align  16\n"
+        "mgallery_start:\n"
+        ".incbin \"" ETAHEN_MGALLERY_ELF "\"\n"
+        "mgallery_end:\n"
+        ".global mgallery_size\n"
+        ".type   mgallery_size, @object\n"
+        ".align  4\n"
+        "mgallery_size:\n"
+        ".int    mgallery_end - mgallery_start\n"
 
         ".global sicon_start\n"
         ".type   sicon_start, @object\n"

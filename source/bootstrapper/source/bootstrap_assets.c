@@ -19,6 +19,8 @@ extern uint8_t ntp_start[];
 extern const unsigned int ntp_size;
 extern uint8_t dashplug_start[];
 extern const unsigned int dashplug_size;
+extern uint8_t mgallery_start[];
+extern const unsigned int mgallery_size;
 extern uint8_t sicon_start[];
 extern const unsigned int sicon_size;
 
@@ -84,6 +86,10 @@ bool bootstrap_assets_write(void) {
       if (fd >= 0) close(fd);
     }
   }
+
+  /* Media Gallery plugin (MGAL00001): HTTP access to screenshots/clips. */
+  (void)write_file_atomic("/data/etaHEN/plugins/MGAL00001.elf", mgallery_start,
+                          mgallery_size);
 
   mkdir("/system_ex/vsh_asset", 0777);
   (void)write_file_atomic("/system_ex/vsh_asset/etahenui.png", sicon_start,

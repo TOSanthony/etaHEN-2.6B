@@ -91,6 +91,7 @@ Port: XXXX
  - FTP server on port 1337 (built-in plugin, managed from ★ etaHEN Plugins)
  - NTP time sync plugin (built-in, European servers by default, managed from ★ etaHEN Plugins)
  - Dashboard plugin (built-in): show/hide the PlayStation Store, PlayStation Plus and Welcome Hub home tiles (app.db), managed from ★ etaHEN Plugins
+ - Media Gallery plugin (built-in): read-only HTTP access to screenshots and video clips (default port 8380), managed from ★ etaHEN Plugins
  - *Optional* /data allowed inside apps sandboxes
  - Klog server on port 9081
  - elf loader on port 9021 (use Johns elfldr)
