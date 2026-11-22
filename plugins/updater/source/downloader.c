@@ -98,6 +98,15 @@ static void set_detail(char *d, size_t n, const char *fmt, ...) {
     va_end(ap);
 }
 
+static int has_marker(const unsigned char *buf, size_t size) {
+    static const char key[] = ".eta_plugin";
+    const size_t kn = sizeof(key) - 1;
+    if (size < kn) return 0;
+    for (size_t i = 0; i + kn <= size; ++i)
+        if (buf[i] == (unsigned char)key[0] && memcmp(buf + i, key, kn) == 0) return 1;
+    return 0;
+}
+
 static int valid_id(const char *id) {
     if (!id || strlen(id) != 9) return 0;
     for (int i = 0; i < 4; i++)
@@ -119,7 +128,7 @@ static int looks_like_plugin(const char *path) {
     if (!buf) { fclose(f); return 0; }
     int ok = fread(buf, 1, (size_t)size, f) == (size_t)size &&
              memcmp(buf, "\x7f" "ELF", 4) == 0 &&
-             memmem(buf, (size_t)size, ".eta_plugin", 11) != NULL;
+             has_marker(buf, (size_t)size);
     free(buf);
     fclose(f);
     return ok;
