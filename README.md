@@ -88,7 +88,7 @@ Port: XXXX
  - Jailbreak IPC call (jailbreaks Homebrew apps)
  - Update blocker (unmounts update partition)
  - *Optional* Illusions cheats/patches [Plugin](https://github.com/LightningMods/etaHEN-SDK/tree/main/Plugin_samples/Illusion_cheats)
- - *Optional* FTP server on port 1337
+ - FTP server on port 1337 (built-in plugin, managed from ★ etaHEN Plugins)
  - *Optional* /data allowed inside apps sandboxes
  - Klog server on port 9081
  - elf loader on port 9021 (use Johns elfldr)
@@ -109,20 +109,18 @@ More info [Here](https://github.com/LightningMods/etaHEN-SDK/blob/main/README.md
  - More (consider donating)
 
 ## etaHEN INI Configuration file 
-etaHEN's ini settings file can be found at `/data/etaHEN/config.ini` and can be accessed using the built-in FTP
+etaHEN's ini settings file can be found at `/data/etaHEN/config.ini` and can be accessed using the FTP server plugin
 and is automatically created when you run etaHEN for the first time
 
 | INI Key             | Description                                                 | Default value |
 |---------------------|-------------------------------------------------------------|---------------|
 | `PS5Debug`          | 0 = disables PS5Debug (Sistr0) auto load, 1 = enable PS5Debug auto load | 0 (disabled) |
-| `FTP`               | 0 = disables etaHEN built-in FTP, 1 = enables it          | 1 (enabled) |
 | `discord_rpc`       | 0 = disables Discord RPC server, 1 = enables it           | 0 (disabled) |
 | `toolbox_auto_start` | 0 = disabled, 1 = enabled                                 | 1 (enabled) |
 | `Allow_data_in_sandbox` | 0 = disables /data in an apps sandbox, 1 = enables it | 1 (enabled) |
 | `DPI`               | 0 = disables The Direct PKG Installer service, 1 = enables it | 0 (disabled) |
 | `DPI_v2`            | 0 = disables DPI version 2, 1 = enables it                | 0 (disabled) |
 | `Klog`              | 0 = disables kernel logging, 1 = enables it               | 0 (disabled) |
-| `ALLOW_FTP_DEV_ACCESS` | 0 = disables FTP developer access, 1 = enables it      | 0 (disabled) |
 | `StartOption`       | 0=None, 1=Home menu, 2=Settings, 3=Toolbox, 4=itemzflow  | 0 (None) |
 | `Rest_Mode_Delay_Seconds` | Delay in seconds before patching shellui coming out rest mode | 0 (no delay) |
 | `Util_rest_kill`    | 0 = don't kill the util daemon during rest, 1 = Do kill it on rest | 0 (disabled) |

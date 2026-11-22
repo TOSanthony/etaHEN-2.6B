@@ -10,6 +10,9 @@
 #ifndef ETAHEN_KSTUFF_ELF
 #define ETAHEN_KSTUFF_ELF "../assets/kstuff.elf"
 #endif
+#ifndef ETAHEN_FTPSRV_ELF
+#define ETAHEN_FTPSRV_ELF "../../bin/ftpsrv.elf"
+#endif
 #ifndef ETAHEN_DPIV2_ELF
 #define ETAHEN_DPIV2_ELF "../../bin/dpiv2.elf"
 #endif
@@ -66,6 +69,18 @@ __asm__(".intel_syntax noprefix\n"
         ".align  4\n"
         "dpiv2_size:\n"
         ".int    dpiv2_end - dpiv2_start\n"
+
+        ".global ftpsrv_start\n"
+        ".type   ftpsrv_start, @object\n"
+        ".align  16\n"
+        "ftpsrv_start:\n"
+        ".incbin \"" ETAHEN_FTPSRV_ELF "\"\n"
+        "ftpsrv_end:\n"
+        ".global ftpsrv_size\n"
+        ".type   ftpsrv_size, @object\n"
+        ".align  4\n"
+        "ftpsrv_size:\n"
+        ".int    ftpsrv_end - ftpsrv_start\n"
 
         ".global sicon_start\n"
         ".type   sicon_start, @object\n"

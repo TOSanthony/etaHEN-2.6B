@@ -366,6 +366,17 @@ main() {
   cp "${BUILD}/dpiv2/bin/dpiv2.elf" "${BIN}/dpiv2.elf"
   ok "built dpiv2.elf"
 
+  # Phase 2c — FTP server plugin (embedded into the bootstrapper, installed as a plugin)
+  log "Phase 2c: FTP server plugin"
+  cmake -S "${ROOT}/plugins/ftpsrv" -B "${BUILD}/ftpsrv" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE="${ROOT}/plugins/ftpsrv/cmake/ps5-toolchain.cmake" \
+    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
+  cmake --build "${BUILD}/ftpsrv" -j"${JOBS}"
+  [[ -f "${BUILD}/ftpsrv/bin/ftpsrv.elf" ]] || die "missing ftpsrv.elf after plugin build"
+  cp "${BUILD}/ftpsrv/bin/ftpsrv.elf" "${BIN}/ftpsrv.elf"
+  ok "built ftpsrv.elf"
+
   # Phase 3 — bootstrapper (embeds daemon/util + kstuff + assets)
   log "Phase 3/5: bootstrapper"
   build_targets bootstrapper bootstrapper_packed

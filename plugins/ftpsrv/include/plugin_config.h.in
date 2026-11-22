@@ -1,0 +1,8 @@
+#pragma once
+
+#define PLUGIN_ID "@ETA_PLUGIN_ID@"
+#define PLUGIN_VERSION "@ETA_PLUGIN_VERSION@"
+#define PLUGIN_NAME "@ETA_PLUGIN_NAME@"
+#define PLUGIN_DEFAULT_PORT 1337
+#define PLUGIN_LOG_PATH "/data/etaHEN/@ETA_PLUGIN_ID@.log"
+#define PLUGIN_SETTINGS_PATH "/data/etaHEN/plugins/@ETA_PLUGIN_ID@.ini"
