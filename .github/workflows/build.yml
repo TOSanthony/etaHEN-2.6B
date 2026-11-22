@@ -65,6 +65,12 @@ jobs:
           test -n "$url"
           wget -O "Source Code/daemon/assets/ps5-app-dumper.elf" "$url"
           head -c 4 "Source Code/daemon/assets/ps5-app-dumper.elf" | grep -q ELF
+          # kstuff.elf is embedded by the bootstrapper
+          kurl=$(gh api repos/EchoStretch/kstuff/releases/latest --jq '.assets[].browser_download_url' | grep -i 'kstuff.*\.elf$' | head -n1)
+          echo "kstuff asset: $kurl"
+          test -n "$kurl"
+          wget -O "Source Code/bootstrapper/assets/kstuff.elf" "$kurl"
+          head -c 4 "Source Code/bootstrapper/assets/kstuff.elf" | grep -q ELF
 
       - name: Build etaHEN
         run: |
@@ -80,6 +86,8 @@ jobs:
           ln -s "../../shellui/assets" "build/shellui/assets"
           ln -s "../../util/assets" "build/util/assets"
           ln -s "../../daemon/assets" "build/daemon/assets"
+          mkdir -p build/bootstrapper
+          ln -s "../../bootstrapper/assets" "build/bootstrapper/assets"
 
           # bootstrapper #incbin's ../hen/hen.bin (Byepervisor kernel payload, only used on
           # old firmwares that allow the hypervisor exploit). It does not compile against
