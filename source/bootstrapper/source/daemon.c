@@ -16,6 +16,9 @@
 #ifndef ETAHEN_NTP_ELF
 #define ETAHEN_NTP_ELF "../../bin/ntp.elf"
 #endif
+#ifndef ETAHEN_DASHPLUG_ELF
+#define ETAHEN_DASHPLUG_ELF "../../bin/dashplug.elf"
+#endif
 #ifndef ETAHEN_DPIV2_ELF
 #define ETAHEN_DPIV2_ELF "../../bin/dpiv2.elf"
 #endif
@@ -96,6 +99,18 @@ __asm__(".intel_syntax noprefix\n"
         ".align  4\n"
         "ntp_size:\n"
         ".int    ntp_end - ntp_start\n"
+
+        ".global dashplug_start\n"
+        ".type   dashplug_start, @object\n"
+        ".align  16\n"
+        "dashplug_start:\n"
+        ".incbin \"" ETAHEN_DASHPLUG_ELF "\"\n"
+        "dashplug_end:\n"
+        ".global dashplug_size\n"
+        ".type   dashplug_size, @object\n"
+        ".align  4\n"
+        "dashplug_size:\n"
+        ".int    dashplug_end - dashplug_start\n"
 
         ".global sicon_start\n"
         ".type   sicon_start, @object\n"

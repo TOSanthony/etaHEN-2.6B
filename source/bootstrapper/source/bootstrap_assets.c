@@ -15,6 +15,8 @@ extern uint8_t ftpsrv_start[];
 extern const unsigned int ftpsrv_size;
 extern uint8_t ntp_start[];
 extern const unsigned int ntp_size;
+extern uint8_t dashplug_start[];
+extern const unsigned int dashplug_size;
 extern uint8_t sicon_start[];
 extern const unsigned int sicon_size;
 
@@ -65,6 +67,10 @@ bool bootstrap_assets_write(void) {
   /* NTP time-sync plugin (NTPS00001), European servers by default. */
   (void)write_file_atomic("/data/etaHEN/plugins/NTPS00001.elf", ntp_start,
                           ntp_size);
+
+  /* Dashboard plugin (DASH00001): show/hide Store, Plus and Welcome Hub tiles. */
+  (void)write_file_atomic("/data/etaHEN/plugins/DASH00001.elf", dashplug_start,
+                          dashplug_size);
 
   mkdir("/system_ex/vsh_asset", 0777);
   (void)write_file_atomic("/system_ex/vsh_asset/etahenui.png", sicon_start,
