@@ -10,23 +10,8 @@
 #ifndef ETAHEN_KSTUFF_ELF
 #define ETAHEN_KSTUFF_ELF "../assets/kstuff.elf"
 #endif
-#ifndef ETAHEN_FTPSRV_ELF
-#define ETAHEN_FTPSRV_ELF "../../bin/ftpsrv.elf"
-#endif
-#ifndef ETAHEN_NTP_ELF
-#define ETAHEN_NTP_ELF "../../bin/ntp.elf"
-#endif
-#ifndef ETAHEN_DASHPLUG_ELF
-#define ETAHEN_DASHPLUG_ELF "../../bin/dashplug.elf"
-#endif
-#ifndef ETAHEN_MGALLERY_ELF
-#define ETAHEN_MGALLERY_ELF "../../bin/mgallery.elf"
-#endif
 #ifndef ETAHEN_UPDATER_ELF
 #define ETAHEN_UPDATER_ELF "../../bin/updater.elf"
-#endif
-#ifndef ETAHEN_DPIV2_ELF
-#define ETAHEN_DPIV2_ELF "../../bin/dpiv2.elf"
 #endif
 #ifndef ETAHEN_ICON_ASSET_DIR
 #define ETAHEN_ICON_ASSET_DIR "../assets"
@@ -69,66 +54,6 @@ __asm__(".intel_syntax noprefix\n"
         ".align  4\n"
         "eta_elfldr_size:\n"
         ".int    eta_elfldr_end - eta_elfldr_start\n"
-
-        ".global dpiv2_start\n"
-        ".type   dpiv2_start, @object\n"
-        ".align  16\n"
-        "dpiv2_start:\n"
-        ".incbin \"" ETAHEN_DPIV2_ELF "\"\n"
-        "dpiv2_end:\n"
-        ".global dpiv2_size\n"
-        ".type   dpiv2_size, @object\n"
-        ".align  4\n"
-        "dpiv2_size:\n"
-        ".int    dpiv2_end - dpiv2_start\n"
-
-        ".global ftpsrv_start\n"
-        ".type   ftpsrv_start, @object\n"
-        ".align  16\n"
-        "ftpsrv_start:\n"
-        ".incbin \"" ETAHEN_FTPSRV_ELF "\"\n"
-        "ftpsrv_end:\n"
-        ".global ftpsrv_size\n"
-        ".type   ftpsrv_size, @object\n"
-        ".align  4\n"
-        "ftpsrv_size:\n"
-        ".int    ftpsrv_end - ftpsrv_start\n"
-
-        ".global ntp_start\n"
-        ".type   ntp_start, @object\n"
-        ".align  16\n"
-        "ntp_start:\n"
-        ".incbin \"" ETAHEN_NTP_ELF "\"\n"
-        "ntp_end:\n"
-        ".global ntp_size\n"
-        ".type   ntp_size, @object\n"
-        ".align  4\n"
-        "ntp_size:\n"
-        ".int    ntp_end - ntp_start\n"
-
-        ".global dashplug_start\n"
-        ".type   dashplug_start, @object\n"
-        ".align  16\n"
-        "dashplug_start:\n"
-        ".incbin \"" ETAHEN_DASHPLUG_ELF "\"\n"
-        "dashplug_end:\n"
-        ".global dashplug_size\n"
-        ".type   dashplug_size, @object\n"
-        ".align  4\n"
-        "dashplug_size:\n"
-        ".int    dashplug_end - dashplug_start\n"
-
-        ".global mgallery_start\n"
-        ".type   mgallery_start, @object\n"
-        ".align  16\n"
-        "mgallery_start:\n"
-        ".incbin \"" ETAHEN_MGALLERY_ELF "\"\n"
-        "mgallery_end:\n"
-        ".global mgallery_size\n"
-        ".type   mgallery_size, @object\n"
-        ".align  4\n"
-        "mgallery_size:\n"
-        ".int    mgallery_end - mgallery_start\n"
 
         ".global updater_start\n"
         ".type   updater_start, @object\n"

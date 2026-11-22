@@ -11,16 +11,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-extern uint8_t dpiv2_start[];
-extern const unsigned int dpiv2_size;
-extern uint8_t ftpsrv_start[];
-extern const unsigned int ftpsrv_size;
-extern uint8_t ntp_start[];
-extern const unsigned int ntp_size;
-extern uint8_t dashplug_start[];
-extern const unsigned int dashplug_size;
-extern uint8_t mgallery_start[];
-extern const unsigned int mgallery_size;
 extern uint8_t updater_start[];
 extern const unsigned int updater_size;
 extern uint8_t sicon_start[];
@@ -44,16 +34,6 @@ static const EmbeddedIcon kEmbeddedIcons[] = {
 #undef ETA_ICON
 };
 
-/* Writes a built-in plugin ELF, unless the Plugin Updater installed a newer
- * version (marker "<elf>.keep"). */
-static bool write_builtin_plugin(const char *path, const uint8_t *data,
-                                 unsigned int size) {
-  char keep[256];
-  snprintf(keep, sizeof(keep), "%s.keep", path);
-  if (access(keep, F_OK) == 0 && access(path, F_OK) == 0) return true;
-  return write_file_atomic(path, data, size);
-}
-
 bool bootstrap_assets_write(void) {
   mkdir("/data/etaHEN", 0777);
   mkdir("/data/etaHEN/assets", 0777);
@@ -72,36 +52,10 @@ bool bootstrap_assets_write(void) {
                             *kEmbeddedIcons[i].size);
   }
 
-  /* DPI v2 (Direct Package Installer) ships inside etaHEN and is installed as a
-   * regular plugin so the plugin manager discovers and starts it. */
+  /* Only the Plugin Updater ships inside etaHEN; every other plugin (DPI v2,
+   * FTP, NTP, Dashboard, Media Gallery, ...) is downloaded with it from the
+   * GitHub release. */
   mkdir("/data/etaHEN/plugins", 0777);
-  (void)write_builtin_plugin("/data/etaHEN/plugins/DPIV00001.elf", dpiv2_start,
-                          dpiv2_size);
-  /* FTP server ships inside etaHEN as a plugin as well (FTPS00001). */
-  (void)write_builtin_plugin("/data/etaHEN/plugins/FTPS00001.elf", ftpsrv_start,
-                          ftpsrv_size);
-  /* NTP time-sync plugin (NTPS00001), European servers by default. */
-  (void)write_builtin_plugin("/data/etaHEN/plugins/NTPS00001.elf", ntp_start,
-                          ntp_size);
-
-  /* Dashboard plugin (DASH00001): show/hide Store, Plus and Welcome Hub tiles. */
-  {
-    /* Auto-start by default on first install only (the user can still turn it
-     * off from the plugin page; the marker is then left alone). */
-    const bool first_install =
-        access("/data/etaHEN/plugins/DASH00001.elf", F_OK) != 0;
-    (void)write_builtin_plugin("/data/etaHEN/plugins/DASH00001.elf",
-                               dashplug_start, dashplug_size);
-    if (first_install) {
-      int fd = open("/data/etaHEN/plugins/DASH00001.elf.auto_start",
-                    O_WRONLY | O_CREAT, 0666);
-      if (fd >= 0) close(fd);
-    }
-  }
-
-  /* Media Gallery plugin (MGAL00001): HTTP access to screenshots/clips. */
-  (void)write_builtin_plugin("/data/etaHEN/plugins/MGAL00001.elf", mgallery_start,
-                          mgallery_size);
 
   /* Plugin Updater (UPDT00001): downloads plugin ELFs from GitHub releases.
    * Auto-start by default on first install only. */

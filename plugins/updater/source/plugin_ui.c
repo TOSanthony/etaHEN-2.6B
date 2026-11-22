@@ -114,9 +114,7 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
         st = add_action(doc, id, key, title, desc);
         if (st != ETA_OK) return st;
     }
-    return add_action(doc, "restore", "restore_requested", "Restaurer les versions integrees",
-                      "Au prochain demarrage d'etaHEN, les plugins integres a etaHEN.elf remplacent "
-                      "les versions telechargees.");
+    return ETA_OK;
 }
 
 eta_status plugin_ui_create(const plugin_settings *settings, const plugin_list *list,
