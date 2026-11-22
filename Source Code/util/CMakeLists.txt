@@ -82,6 +82,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     SceSsl 
     z 
     curl 
+    wolfssl      # libcurl from the SDK is built against wolfSSL (lib/libwolfssl.a)
     SelfDecryptor
     minizip 
     microhttpd
