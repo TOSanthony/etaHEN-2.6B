@@ -135,6 +135,109 @@ static int looks_like_plugin(const char *path) {
 }
 
 static int curl_ready(void) {
+    if (!g_curl_ready) {
+        if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0) return 0;
+        g_curl_ready = 1;
+    }
+    return 1;
+}
+
+static void common_setup(CURL *curl, const char *url, struct curl_blob *ca, long timeout) {
+    ca->data = (void *)eta_curl_ca_bundle_start;
+    ca->len = (size_t)(eta_curl_ca_bundle_end - eta_curl_ca_bundle_start);
+    ca->flags = CURL_BLOB_NOCOPY;
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "etaHEN-plugin-updater");
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(curl, CURLOPT_CAINFO_BLOB, ca);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "https");
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "https");
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
+}
+
+/* Finds the next "key":"value" pair at or after *pos. */
+static int json_next_string(const char *buf, const char **pos, const char *key, char *out,
+                            size_t out_size) {
+    (void)buf;
+    char pat[48];
+    snprintf(pat, sizeof pat, "\"%s\"", key);
+    const char *p = *pos;
+    for (;;) {
+        p = strstr(p, pat);
+        if (!p) return 0;
+        p += strlen(pat);
+        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+        if (*p != ':') continue;
+        p++;
+        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+        if (*p != '"') continue;
+        p++;
+        size_t n = 0;
+        while (*p && *p != '"' && n + 1 < out_size) out[n++] = *p++;
+        out[n] = '\0';
+        *pos = p;
+        return 1;
+    }
+}
+
+unsigned downloader_list_plugins(int channel, char ids[][DL_ID_LEN], unsigned max,
+                                 char *detail, size_t detail_size) {
+    if (!curl_ready()) { set_detail(detail, detail_size, "curl init failed"); return 0; }
+    char url[256];
+    if (channel) snprintf(url, sizeof url, "https://api.github.com/repos/%s/releases/latest", UPDATE_REPO);
+    else snprintf(url, sizeof url, "https://api.github.com/repos/%s/releases/tags/nightly", UPDATE_REPO);
+
+    CURL *curl = curl_easy_init();
+    if (!curl) { set_detail(detail, detail_size, "curl_easy_init failed"); return 0; }
+    struct curl_blob ca;
+    membuf m = {0, 0, 0};
+    common_setup(curl, url, &ca, 25L);
+    struct curl_slist *hdr = curl_slist_append(NULL, "Accept: application/vnd.github+json");
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mem_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &m);
+    CURLcode rc = curl_easy_perform(curl);
+    long http = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http);
+    curl_slist_free_all(hdr);
+    curl_easy_cleanup(curl);
+
+    unsigned count = 0;
+    if (rc != CURLE_OK) {
+        set_detail(detail, detail_size, "network: %s", curl_easy_strerror(rc));
+    } else if (http != 200 || !m.data) {
+        set_detail(detail, detail_size, "HTTP %ld (release not found?)", http);
+    } else {
+        const char *pos = strstr(m.data, "\"assets\"");
+        if (!pos) pos = m.data;
+        char name[96];
+        while (count < max && json_next_string(m.data, &pos, "name", name, sizeof name)) {
+            if (strlen(name) != 13 || strcmp(name + 9, ".elf") != 0) continue; /* <ID>.elf */
+            char id[DL_ID_LEN];
+            memcpy(id, name, 9);
+            id[9] = '\0';
+            if (!valid_id(id) || strcmp(id, PLUGIN_ID) == 0) continue;
+            int dup = 0;
+            for (unsigned i = 0; i < count; i++) if (strcmp(ids[i], id) == 0) dup = 1;
+            if (!dup) { memcpy(ids[count], id, 10); count++; }
+        }
+        if (count == 0) set_detail(detail, detail_size, "no plugin ELF in this release");
+    }
+    free(m.data);
+    return count;
+}
+
+dl_result downloader_install_plugin(const char *plugin_id, int channel, dl_progress_fn progress,
+                                    void *progress_user, char *detail, size_t detail_size) {
+    if (!valid_id(plugin_id)) {
+        set_detail(detail, detail_size, "invalid plugin id");
+        return DL_ERR_INVALID;
+    }
     if (!curl_ready()) {
         set_detail(detail, detail_size, "curl init failed");
         return DL_ERR_NETWORK;
