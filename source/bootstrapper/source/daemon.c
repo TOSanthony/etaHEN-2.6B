@@ -22,6 +22,9 @@
 #ifndef ETAHEN_MGALLERY_ELF
 #define ETAHEN_MGALLERY_ELF "../../bin/mgallery.elf"
 #endif
+#ifndef ETAHEN_UPDATER_ELF
+#define ETAHEN_UPDATER_ELF "../../bin/updater.elf"
+#endif
 #ifndef ETAHEN_DPIV2_ELF
 #define ETAHEN_DPIV2_ELF "../../bin/dpiv2.elf"
 #endif
@@ -126,6 +129,18 @@ __asm__(".intel_syntax noprefix\n"
         ".align  4\n"
         "mgallery_size:\n"
         ".int    mgallery_end - mgallery_start\n"
+
+        ".global updater_start\n"
+        ".type   updater_start, @object\n"
+        ".align  16\n"
+        "updater_start:\n"
+        ".incbin \"" ETAHEN_UPDATER_ELF "\"\n"
+        "updater_end:\n"
+        ".global updater_size\n"
+        ".type   updater_size, @object\n"
+        ".align  4\n"
+        "updater_size:\n"
+        ".int    updater_end - updater_start\n"
 
         ".global sicon_start\n"
         ".type   sicon_start, @object\n"

@@ -410,6 +410,17 @@ main() {
   cp "${BUILD}/mediagallery/bin/MGAL00001.elf" "${BIN}/mgallery.elf"
   ok "built mgallery.elf"
 
+  # Phase 2g — Plugin Updater (downloads plugin ELFs from GitHub releases)
+  log "Phase 2g: Plugin Updater"
+  cmake -S "${ROOT}/plugins/updater" -B "${BUILD}/updater" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE="${ROOT}/plugins/updater/cmake/ps5-toolchain.cmake" \
+    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
+  cmake --build "${BUILD}/updater" -j"${JOBS}"
+  [[ -f "${BUILD}/updater/bin/UPDT00001.elf" ]] || die "missing UPDT00001.elf after plugin build"
+  cp "${BUILD}/updater/bin/UPDT00001.elf" "${BIN}/updater.elf"
+  ok "built updater.elf"
+
   # Phase 3 — bootstrapper (embeds daemon/util + kstuff + assets)
   log "Phase 3/5: bootstrapper"
   build_targets bootstrapper bootstrapper_packed
