@@ -143,7 +143,7 @@ and is automatically created when you run etaHEN for the first time
 | `overlay_cpu`      | 0 = disabled, 1 = enabled            | 0 (disabled) |
 | `overlay_gpu`  | 0 = disabled, 1 = enabled    | 0 (disabled) |
 | `overlay_ip` | 0 = disabled, 1 = enabled           | 1 (enabled) |
-| `overlay_kstuff` | 0 = disabled, 1 = enabled           | 1 (enabled) |
+| `overlay_kstuff` | 0 = disabled, 1 = enabled           | 0 (disabled) |
 | `Overlay_pos` | Multi-select option for game overlay                | 0 (OVERLAY_POS_TOP_LEFT) |
 
 ## DPI API details for tool creators 
