@@ -445,7 +445,7 @@ struct HomeUiPatchProfile {
 
 /* Firmware-independent patch bytes (identical across every profile). */
 static const unsigned char kLegacyTopNavPressUri[] = {
-    'O', 'n', 'i', 'o', 'n', 'H', 'E', 'N', '?', 'N', 'a', 'v', 'U', 'I'};
+    'e', 't', 'a', 'H', 'E', 'N', 'U', 'I', '?', 'N', 'a', 'v', 'U', 'I'};
 static const unsigned char kStockDownloadErrorString[] = {
     'd', 'o', 'w', 'n', 'l', 'o', 'a', 'd', '_', 'e', 'r', 'r', 'o', 'r'};
 static const unsigned char kOldCustomIconUri[] = {
@@ -454,8 +454,8 @@ static const unsigned char kOldCustomIconUri[] = {
     'r', 'E', 'v', 'e', 'n', 't', ' ', 't', 'e', 's', 't'};
 static const unsigned char kNewCustomIconUri[] = {
     '/', 's', 'y', 's', 't', 'e', 'm', '_', 'e', 'x', '/',
-    'v', 's', 'h', '_', 'a', 's', 's', 'e', 't', '/', 'o',
-    'n', 'i', 'o', 'n', 'h', 'e', 'n', '.', 'p', 'n', 'g'};
+    'v', 's', 'h', '_', 'a', 's', 's', 'e', 't', '/', 'e',
+    't', 'a', 'h', 'e', 'n', 'u', 'i', '.', 'p', 'n', 'g'};
 static const unsigned char kOldTopNavLinkUri[] = {
     'T', 'r', 'i', 'g', 'g', 'e', 'r', ' ',
     'A', 'p', 'p', 'E', 'r', 'r', 'o', 'r'};
@@ -463,10 +463,10 @@ static const unsigned char kLegacyBlankTopNavLinkUri[] = {
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 static const unsigned char kLegacyPaddedTopNavLinkUri[] = {
-    'O', 'n', 'i', 'o', 'n', 'H', 'E', 'N',
+    'e', 't', 'a', 'H', 'E', 'N', 'U', 'I',
     '?', 'N', 'a', 'v', 'U', 'I', ' ', ' '};
 static const unsigned char kNewTopNavLinkUri[] = {
-    'O', 'n', 'i', 'o', 'n', 'H', 'E', 'N',
+    'e', 't', 'a', 'H', 'E', 'N', 'U', 'I',
     '?', 'N', 'a', 'v', 'U', 'I', '=', '1'};
 static const unsigned char kNewCustomTitleValue[] = {0xff, 0x00};
 

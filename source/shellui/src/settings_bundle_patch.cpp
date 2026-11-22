@@ -81,8 +81,8 @@ static constexpr unsigned char kLegacyOldLabel[] = {
     0xe2, 0x98, 0x85, 'D', 'e', 'b', 'u', 'g', ' ', 'S', 'e', 't', 't', 'i',
     'n', 'g', 's'};
 static constexpr unsigned char kLegacyNewLabel[] = {
-    0xe2, 0x98, 0x85, 'O', 'n', 'i', 'o', 'n', 'H', 'E', 'N', ' ', 'T', 'o',
-    'o', 'l', 's'};
+    0xe2, 0x98, 0x85, 'e', 't', 'a', 'H', 'E', 'N', ' ', 'T', 'o', 'o',
+    'l', 'b', 'o', 'x'};
 static constexpr unsigned char kLegacyOldIcon[] = {
     'i', 'c', 'o', 'n', '_', 's', 'e', 't', 't', 'i', 'n', 'g'};
 
@@ -93,9 +93,9 @@ static constexpr unsigned char kHermesOldLabel[] = {
     't',  0x00, 'i', 0x00, 'n', 0x00, 'g', 0x00, 's', 0x00,
 };
 static constexpr unsigned char kHermesNewLabel[] = {
-    0x05, 0x26, 'O', 0x00, 'n', 0x00, 'i', 0x00, 'o', 0x00,
-    'n',  0x00, 'H', 0x00, 'E', 0x00, 'N', 0x00, ' ', 0x00,
-    'T',  0x00, 'o', 0x00, 'o', 0x00, 'l', 0x00, 's', 0x00,
+    0x05, 0x26, 'e', 0x00, 't', 0x00, 'a', 0x00, 'H', 0x00,
+    'E',  0x00, 'N', 0x00, ' ', 0x00, 'T', 0x00, 'o', 0x00,
+    'o',  0x00, 'l', 0x00, 'b', 0x00, 'o', 0x00, 'x', 0x00,
 };
 
 static_assert(sizeof(kLegacyOldLabel) == sizeof(kLegacyNewLabel));
