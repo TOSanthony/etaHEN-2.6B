@@ -108,7 +108,7 @@ jobs:
 
           # bootstrapper #incbin's ../hen/hen.bin (Byepervisor kernel payload, only used on
           # old firmwares that allow the hypervisor exploit). It does not compile against
-          # the current SDK headers, so an empty placeholder is provided for 22.6 builds.
+          # the current SDK headers, so an empty placeholder is provided for 2.6B builds.
           mkdir -p build/hen
           : > build/hen/hen.bin
 
