@@ -38,8 +38,10 @@ jobs:
           cd openssl-3.5.2
           ./Configure BSD-x86_64 no-tests no-apps no-shared --prefix="${PREFIX}"
           ${MAKE:-make} -j"$(nproc)" build_sw
-          ${MAKE:-make} install_sw DESTDIR=
-          ls -l "${PREFIX}/lib/libcrypto.a" "${PREFIX}/lib/libssl.a"
+          # prospero.sh sets DESTDIR to the SDK sysroot (as in the pacbrew PKGBUILD)
+          ${MAKE:-make} install_sw DESTDIR="${DESTDIR}"
+          [ -n "${PS5_CROSS_FIX_ROOT:-}" ] && ${PS5_CROSS_FIX_ROOT} "${DESTDIR}/${PREFIX}" || true
+          ls -l "${DESTDIR}/${PREFIX}/lib/libcrypto.a" "${DESTDIR}/${PREFIX}/lib/libssl.a"
 
       - name: Prepare Assets
         run: |
