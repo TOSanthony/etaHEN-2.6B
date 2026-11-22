@@ -49,7 +49,7 @@ bool bootstrap_assets_write(void) {
   }
 
   mkdir("/system_ex/vsh_asset", 0777);
-  (void)write_file_atomic("/system_ex/vsh_asset/etahen.png", sicon_start,
+  (void)write_file_atomic("/system_ex/vsh_asset/onionhen.png", sicon_start,
                           sicon_size);
   return startup_icon_ready;
 }
