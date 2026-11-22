@@ -16,7 +16,7 @@
 static pthread_t g_thread;
 static volatile int g_started = 0;
 static int g_restart_shell = 0;
-static int g_restart_delay = 30;
+static int g_restart_delay = 10;
 
 extern int sceKernelTerminateProcess(int pid, int *ret);
 #define DECID_AUTH_ID UINT64_C(0x4800000000000022)
@@ -101,7 +101,7 @@ static void *bridge_thread(void *arg) {
 int wh_runner_start(int restart_shell, int restart_delay_s) {
   if (g_started) return 0;
   g_restart_shell = restart_shell;
-  g_restart_delay = restart_delay_s >= 5 ? restart_delay_s : 30;
+  g_restart_delay = restart_delay_s >= 5 ? restart_delay_s : 10;
   if (pthread_create(&g_thread, NULL, bridge_thread, NULL) != 0) return -1;
   pthread_detach(g_thread);
   g_started = 1;

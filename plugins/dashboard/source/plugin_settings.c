@@ -15,7 +15,7 @@ void plugin_settings_defaults(plugin_settings *s) {
     s->notify = 0;
     s->bridge = 1;
     s->restart_shell = 0;
-    s->restart_delay = 30;
+    s->restart_delay = 10;
 }
 
 static int parse_bool(const char *v, int *out) {
