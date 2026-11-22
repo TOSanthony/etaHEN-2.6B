@@ -1,267 +1,490 @@
-# etaHEN - AIO Homebrew enabler
+<p align="center">
+  <img src="assets/logo.png" alt="etaHEN" height="128" width="128"/>
+</p>
 
-![etaHEN](https://github.com/LightningMods/etaHEN/blob/main/etaHEN-Icon.jpg)
+<p align="center">
+  <b>etaHEN</b><br/>
+  An all-in-one HEN and Toolbox for PlayStation 5
+</p>
 
-## 🚀 **Support the Project**
+<p align="center">
+  <a href="README_ZH.md">简体中文</a>
+  ·
+  <b>English</b>
+</p>
 
-If you find this project useful and would like to support its continued development, consider buying me a coffee!
-[![GitHub Sponsers](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://github.com/sponsors/LightningMods)
+<p align="center">
+  <b><a href="#features">Features</a></b>
+  ·
+  <b><a href="#run">Run</a></b>
+  ·
+  <b><a href="#build">Build</a></b>
+  ·
+  <b><a href="#configuration">Configuration</a></b>
+  ·
+  <b><a href="#support">Support</a></b>
+  ·
+  <b><a href="#credits">Credits</a></b>
+</p>
 
-## Building from Source
+> **Origine du code / Source of this code.** Ce dépôt est basé sur
+> [OnionHEN](https://github.com/aydencharles/onionHEN) (GPLv3, lui-même dérivé
+> d'[etaHEN](https://github.com/etaHEN/etaHEN) de LightningMods), renommé « etaHEN ».
+> Les licences et mentions de copyright d'origine sont conservées.
+> This repository is based on OnionHEN (GPLv3), itself derived from etaHEN, renamed to "etaHEN".
+> Original licenses and copyright notices are kept.
 
-The Source code is provided in the Source code folder under GPLv3 with all the necessary files to build it as required under GPLv3 
-However I will not be providing instructions on how to build it since any dev should know how to use cmake 
+---
 
-## Official PS5 exploit website 
-- https://tinyurl.com/PS5IPV6 (requires you to manually send the payload but has the best stability)
-- https://ps5jb.pages.dev/ (auto loads the payload for you, id recommend the IPV6 exploit over UMTX)
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="license"/></a>
+  <img src="https://img.shields.io/badge/Platform-PlayStation%205-003791?style=flat&logo=playstation" alt="PlayStation 5"/>
+  <img src="https://img.shields.io/badge/C-00599C?style=flat&logo=c&logoColor=white" alt="C"/>
+  <img src="https://img.shields.io/badge/C++-00599C?style=flat&logo=cplusplus&logoColor=white" alt="C++"/>
+  <img src="https://img.shields.io/badge/Build-CMake-064F8C?style=flat&logo=cmake" alt="CMake"/>
+</p>
 
-## Recommended self-host exploits
-- [Modified IPV6 exploit for etaHEN support](https://github.com/LightningMods/PS5-IPV6-Kernel-Exploit)
+<p align="center">
+  etaHEN is a modular payload stack for the PS5. One entry ELF prepares
+  the system, injects a ShellUI Toolbox,<br/>and then runs overlays, cheats,
+  payloads, and background services.
+</p>
 
-## Payload PowerShell Script usage for Windows (send_payload.ps1)
+<p align="center">
+  <img src="assets/screenshot_01.png" alt="etaHEN home-screen entry"/>
+</p>
 
-if you haven't already, you will need to either enable script execution globally via 
+<p align="center">
+  <img src="assets/screenshot_02.png" alt="etaHEN in-game monitor bar"/>
+</p>
 
-```
-Set-ExecutionPolicy Bypass
-```
-in an admin PowerShell window or run the script with this command after replacing the script path
+<p align="center">
+  <img src="assets/screenshot_03.png" alt="etaHEN Toolbox"/>
+</p>
 
-```
-powershell.exe -ExecutionPolicy Bypass -File C:\Path\To\send_payload.ps1
-```
-**Script Usage**
+<br>
 
-```
-.\send_payload.ps1 -Payload "C:\path\to\example.elf" -IP "192.168.xxx.xxx" -Port XXXX
-```
+# Features
 
-**OR**
+etaHEN is a practical homebrew stack for jailbroken PS5 consoles.
 
-```
-.\send_payload.ps1
+- **ShellUI Toolbox** — a settings page injected into the PS5 ShellUI
+- **System preparation** — raise privileges, remount filesystems, and block the update partition
+- **fSELF / fPKG** — bundled kstuff for homebrew SELF / PKG; loads by default, can be turned off in the Toolbox
+- **Plugin runtime** — discovers, validates, starts, stops, and removes descriptor-bearing plugin ELFs
+- **PS5 FTP server** — available as the optional external `etaHEN-ftpsrv-plugin`
+- **ShadowMount+** — available as the optional external `etaHEN-shadowmountplus-plugin`
+- **Remote Play pairing** — enable the native PS5 Remote Play service, generate a pairing PIN, and register a client from the Network section
+- **User payload manager** — start and stop user-provided `.elf` payloads, with optional auto-start
+- **Custom PKG Installer** — scan up to eight configured `/data` or `/mnt` folders for PS4 PKG files and submit them to the system installer
+- **Game overlay** — an in-game bar for FPS, CPU, GPU, RAM, temperatures, and network info
+- **Cheat engine** — local JSON, SHN, MC4, ShnExt, and Illusion PS-Game-Patch XML files that can be toggled at runtime
+- **DPI v2** — available as the optional external `etaHEN-dpiv2-plugin`
+- **Console tools** — account activation, external HDD, Title IDs, fan control, shortcuts, and game options
+- **App jailbreak** — allowlisted homebrew can ask the daemon for extra privileges through a sandbox FIFO
+- **Resilient runtime** — the critical daemon and utility daemon run apart; the main daemon can restart the utility
+- **Shared configuration** — the Toolbox and daemons use one versioned `config.ini`
 
-cmdlet send_payload.ps1 at command pipeline position 1
-Supply values for the following parameters:
-(Type !? for Help.)
-Payload: C:\path\to\example.elf
-IP: 192.168.xxx.xxx
-Port: XXXX
-```
-- Common Ports: SB elfldr 9021, exploit elfldr 9020
+etaHEN does not include a kernel exploit. The first hop still needs an
+external `elfldr` on **9021**. After that, etaHEN starts its own private
+loader on **9020** for later ELF and user-payload launches.
 
-## Features
- - ★ etaHEN toolbox (debug settings replacement)
- - Custom etaHEN [Plugins](https://github.com/LightningMods/etaHEN-SDK/tree/main/Plugin_samples)
- - [Toolbox] Install the Homebrew Store on the console
- - [Toolbox] ★Rest Mode Options
- - [Toolbox] Remote Play Menu
- - [Toolbox] Plugin / Payload ELF Menu with auto start options
- - [Toolbox] External HDD Menu
- - [Toolbox] TestKit Menu  
- - [Toolbox] Kstuff menu
- - [Toolbox] Game Overlay Menu
- - [Toolbox] Cheats Menu (WIP)
- - [Toolbox] Controller Shortcuts
- - [Toolbox] PS5 webMAN Games menu
- - [Toolbox] Custom Game Options Menu
- - [Toolbox] Display Title IDs on Home menu
- - [Toolbox] Disable toolbox auto start
- - [Toolbox] Blu-Ray license activation 
- - [Toolbox] Disc auto eject for BD-J and LUA based exploits
- - [Toolbox] etaHEN credits and supporters
- - [Toolbox] Custom debug settings text and icon
- - [Toolbox] Auto open menu after etaHEN loads
- - [Toolbox] a number of different toolbox settings
- - React bundle (all FWs) & Self (only on 2.xx) FTP decryption Support
- - 2 seperate daemons for improved stability and reliability
- - The Util daemon will be auto restarted by the main etaHEN daemon
- - Custom System Software version (custom System info)
- - kstuff for fself and fpkg support 
- - etaHEN log in /data/etaHEN
- - (optional) System-wide controller shortcut to open itemzflow
- - Debug Settings
- - Game Dumper (Intrgrated with Itemzflow)
- - HEN config file for settings
- - Jailbreak IPC call (jailbreaks Homebrew apps)
- - Update blocker (unmounts update partition)
- - *Optional* Illusions cheats/patches [Plugin](https://github.com/LightningMods/etaHEN-SDK/tree/main/Plugin_samples/Illusion_cheats)
- - *Optional* FTP server on port 1337
- - *Optional* /data allowed inside apps sandboxes
- - Klog server on port 9081
- - elf loader on port 9021 (use Johns elfldr)
- - *Optional* PS5Debug
- - Itemzflow intergration
- - *Optional* Discord RPC server on port 8000, click [here](https://github.com/jeroendev-one/ps5-rpc-client) for setup instructions 
- - *Optional* Direct PKG installer V2 service with WebUI on http://PS5_IP:12800
- - *Optional* Direct PKG installer service on port 9090
+<br>
 
-## etaHEN SDK
-make your own custom plugins via the [etaHEN SDK](https://github.com/lightningmods/etaHEN-SDK)
-More info [Here](https://github.com/LightningMods/etaHEN-SDK/blob/main/README.md)
+# Run
 
-## Upcoming features
- - [Toolbox] FPS Counter
- - More userland patches
- - Improved PS5 Game support (itemzflow)
- - More (consider donating)
+### Requirements
 
-## etaHEN INI Configuration file 
-etaHEN's ini settings file can be found at `/data/etaHEN/config.ini` and can be accessed using the built-in FTP
-and is automatically created when you run etaHEN for the first time
+1. A jailbroken PS5
+2. An external [PS5 `elfldr`](https://github.com/ps5-payload-dev/elfldr) listening on port **9021** for the first hop
 
-| INI Key             | Description                                                 | Default value |
-|---------------------|-------------------------------------------------------------|---------------|
-| `PS5Debug`          | 0 = disables PS5Debug (Sistr0) auto load, 1 = enable PS5Debug auto load | 0 (disabled) |
-| `FTP`               | 0 = disables etaHEN built-in FTP, 1 = enables it          | 1 (enabled) |
-| `discord_rpc`       | 0 = disables Discord RPC server, 1 = enables it           | 0 (disabled) |
-| `toolbox_auto_start` | 0 = disabled, 1 = enabled                                 | 1 (enabled) |
-| `Allow_data_in_sandbox` | 0 = disables /data in an apps sandbox, 1 = enables it | 1 (enabled) |
-| `DPI`               | 0 = disables The Direct PKG Installer service, 1 = enables it | 0 (disabled) |
-| `DPI_v2`            | 0 = disables DPI version 2, 1 = enables it                | 0 (disabled) |
-| `Klog`              | 0 = disables kernel logging, 1 = enables it               | 0 (disabled) |
-| `ALLOW_FTP_DEV_ACCESS` | 0 = disables FTP developer access, 1 = enables it      | 0 (disabled) |
-| `StartOption`       | 0=None, 1=Home menu, 2=Settings, 3=Toolbox, 4=itemzflow  | 0 (None) |
-| `Rest_Mode_Delay_Seconds` | Delay in seconds before patching shellui coming out rest mode | 0 (no delay) |
-| `Util_rest_kill`    | 0 = don't kill the util daemon during rest, 1 = Do kill it on rest | 0 (disabled) |
-| `Game_rest_kill`    | 0 = don't kill the open game during rest, 1 = Do kill it on rest | 0 (disabled) |
-| `disable_toolbox_auto_start_for_rest_mode` | 0 = disabled, 1 = enabled | 0 (disabled) |
-| `libhijacker_cheats` | 0 = disables libhijacker cheats, 1 = enables it          | 0 (disabled) |
-| `launch_itemzflow`  | 0 = disabled, 1 = enables auto launch of itemzflow        | 0 (disabled) |
-| `testkit`           | 0 = disabled, 1 = enables testkit mode                    | 0 (disabled) |
-| `Display_tids`      | 0 = disabled, 1 = enables display of title IDs            | 0 (disabled) |
-| `APP_JB_Debug_Msg`  | 0 = disabled, 1 = enables app jailbreak debug messages    | 0 (disabled) |
-| `etaHEN_Game_Options` | 0 = disabled, 1 = enables etaHEN game options           | 1 (enabled) |
-| `auto_eject_disc`   | 0 = disabled, 1 = enables automatic disc ejection         | 0 (disabled) |
-| `Cheats_shortcut_opt` | Multi-select option for cheats shortcut                 | 0 (CHEATS_SC_OFF) |
-| `Toolbox_shortcut_opt` | Multi-select option for toolbox shortcut               | 0 (TOOLBOX_SC_OFF) |
-| `Games_shortcut_opt` | Multi-select option for games shortcut                   | 0 (GAMES_SC_OFF) |
-| `Kstuff_shortcut_opt` | Multi-select option for kstuff shortcut                | 0 (KSTUFF_SC_OFF) |
-| `auto_eject_disc`  | 0 = disabled, 1 = enabled        | 0 (disabled) |
-| `overlay_ram`           | 0 = disabled, 1 = enabled                    | 0 (disabled) |
-| `overlay_cpu`      | 0 = disabled, 1 = enabled            | 0 (disabled) |
-| `overlay_gpu`  | 0 = disabled, 1 = enabled    | 0 (disabled) |
-| `overlay_ip` | 0 = disabled, 1 = enabled           | 1 (enabled) |
-| `overlay_kstuff` | 0 = disabled, 1 = enabled           | 0 (disabled) |
-| `Overlay_pos` | Multi-select option for game overlay                | 0 (OVERLAY_POS_TOP_LEFT) |
+### Load etaHEN
 
-## DPI API details for tool creators 
-etaHEN's Direct PKG Installer currently is very simple and is considered a WIP
-the service flow is as follows
+1. Run the kernel exploit and start the external `elfldr` service.
+2. Send `etaHEN.elf` through the loader your exploit host provides.
+3. Wait for the utility daemon, `kstuff`, and the main daemon to start, in that order.
+4. Open PS5 Settings and enter the etaHEN Toolbox.
 
-1. Connect to etaHEN's TCP server via port 9090 (using the PS5s IP)
-2. Send a URL to etaHEN in the following json format
-```
-{ "url" : "http://xxxx" }
-```
-3. etaHEN will then send back the return value (0 on success)
-```
-{ "res" : "0" }
-```
-4. etaHEN will close the client socket after the return json is sent
+Startup is sequential. After the first hop, etaHEN uses its own
+`eta_elfldr.elf` on port **9020** and keeps **9021** only as a fallback.
 
-
-## Jailbreaking an app (FPKG) using etaHEN (non-whitelist method, Network and Legacy CMD server toolbox setting required)
-
-```
-enum Commands : int {
-  INVALID_CMD = -1,
-  ACTIVE_CMD = 0,
-  LAUNCH_CMD,
-  PROCLIST_CMD,
-  KILL_CMD,
-  KILL_APP_CMD,
-  JAILBREAK_CMD
-};
-
-struct HijackerCommand
-{
-  int magic = 0xDEADBEEF;
-  Commands cmd = INVALID_CMD;
-  int PID = -1;
-  int ret = -1337;
-  char msg1[0x500];
-  char msg2[0x500];
-};
-
-int HJOpenConnectionforBC() {
-
-  SceNetSockaddrIn address;
-  address.sin_len = sizeof(address);
-  address.sin_family = AF_INET;
-  address.sin_port = sceNetHtons(9028); //command serve port
-  memset(address.sin_zero, 0, sizeof(address.sin_zero));
-  sceNetInetPton(AF_INET, "127.0.0.1", &address.sin_addr.s_addr);
-
-  int socket = sceNetSocket("IPC_CMD_SERVER", AF_INET, SOCK_STREAM, 0);
-  if (sceNetConnect(socket, (SceNetSockaddr*)&address, sizeof(address)) < 0) {
-    close(socket), socket = -1;
-  }
-
-  return socket;
-}
-
-bool HJJailbreakforBC(int& sock) {
-
-  // send jailbreak IPC command
-  HijackerCommand cmd;
-  cmd.PID = getpid();
-  cmd.cmd = JAILBREAK_CMD;
-
-  if (send(sock, (void*)&cmd, sizeof(cmd), MSG_NOSIGNAL) == -1) {
-      puts("failed to send command");
-      return false;
-  }
-  else {
-    // get ret val from daemon
-    recv(sock, reinterpret_cast<void*>(&cmd), sizeof(cmd), MSG_NOSIGNAL);
-    close(sock), sock = -1;
-    if (cmd.ret != 0 && cmd.ret != -1337) {
-      puts("Jailbreak has failed");
-      return false;
-    }
-    return true;
-  }
-
-  return false;
-}
-
-int main()
-{
-
-     int ret = HJOpenConnectionforBC();
-     if (ret < 0) {
-         puts("Failed to connect to daemon");
-         return -1;
-     }
-     if (!HJJailbreakforBC(ret))
-     {
-          puts("Jailbreak failed");
-          return -1;
-     }
-
-     return 0;
-}
+```text
+etaHEN.elf → bootstrapper → eta_elfldr.elf (:9020) → util.elf → kstuff.elf → daemon.elf → Toolbox
 ```
 
-## Contributors
-- [John Tornblom / PS5-Payload-dev](https://github.com/john-tornblom)
-- [Buzzer](https://github.com/buzzer-re)
-- [sleirsgoevy](https://github.com/sleirsgoevy)
-- [ChendoChap](https://github.com/ChendoChap)
-- [astrelsky](https://github.com/astrelsky)
-- [illusion](https://github.com/illusion0001)
-- CTN & [SiSTR0](https://github.com/SiSTR0) for PS5Debug
-- [Nomadic](https://github.com/jeroendev-one) (Discord RPC feature)
+External plugins are discovered and started by the daemon after `kstuff` is
+ready.
 
-## Testers
-- [Echo Stretch](https://twitter.com/StretchEcho)
-- [idlesauce](https://github.com/idlesauce)
-- [Dizz](https://github.com/DizzRL)
-- [BedroZen](https://twitter.com/BedroZen)
-- [MODDED WARFARE](https://twitter.com/MODDED_WARFARE)
+### FTP server
 
+FTP is provided by the separate
+[`etaHEN-ftpsrv-plugin`](https://github.com/EtaBuddies/etaHEN-ftpsrv-plugin).
+Install it as `/data/etaHEN/plugins/FTPS00001.elf`; etaHEN discovers and
+starts the plugin, and its dynamic settings page provides enable, port, and
+restart controls. The plugin retains upstream `ftpsrv` commands such as
+`KILL`, `SELF`, `SCHK`, `MTRW`, and `AUTHID` where supported.
 
-## Join us on the Support Discord
-- https://discord.gg/xs2F46tKzK
+### ShadowMount+
+
+ShadowMount+ is provided by the optional external
+[`etaHEN-shadowmountplus-plugin`](https://github.com/EtaBuddies/etaHEN-shadowmountplus-plugin).
+Install its descriptor-bearing ELF under `/data/etaHEN/plugins/`; the daemon
+then owns discovery, start, stop, replacement, and removal. Its dynamic
+page provides an immediate scan action. The plugin requires `kstuff` and keeps
+its own options under `/data/shadowmount/config.ini`.
+
+### DPI (network package installer)
+
+DPI v2 is provided by the optional external
+[`etaHEN-dpiv2-plugin`](https://github.com/EtaBuddies/etaHEN-dpiv2-plugin).
+Install it as `/data/etaHEN/plugins/DPIV00001.elf`; etaHEN discovers and
+starts it, and its dynamic settings page provides enable, API port, WebUI port,
+and restart controls. The browser remains the installer interface, including
+chunked uploads, queue management, staged-file reuse, and SSE progress. The
+default WebUI URL is `http://<console>:12800`.
+
+### Remote Play
+
+Remote Play pairing is available from **Toolbox → Network → Remote Play**.
+The current account must already be activated. If it is not, etaHEN blocks
+the Remote Play page and directs you to **Toolbox → Account → Account
+activation**. Once the account is activated, etaHEN enables the Remote Play
+registry setting and displays the pairing PIN. Enter that PIN in the official
+Remote Play client while the page is open; etaHEN uses the native PS5 Remote
+Play service to confirm the registered device.
+
+The feature provides pairing and registration only. Video streaming and client
+transport remain handled by Sony's native Remote Play service.
+
+### Payloads
+
+Place standalone payloads in:
+
+```text
+/data/etaHEN/payloads/
+```
+
+Only plain `.elf` files are supported. Auto-start can be turned on in the Toolbox;
+etaHEN remembers that choice with a matching `.auto_start` file next to the ELF.
+
+All `.elf` filenames use the same Payload page, loader, and auto-start flow. A
+recorded running instance is left running by later launch and auto-start
+requests. etaHEN plugins are a separate category and belong in
+`/data/etaHEN/plugins/`.
+
+### Cheats
+
+Put cheat files in one directory. Names are `TITLEID_VERSION`, with an
+optional process and 8-hex source ID:
+
+```text
+/data/etaHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<SOURCE_ID>].json
+/data/etaHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<SOURCE_ID>].shn
+/data/etaHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<SOURCE_ID>].mc4
+/data/etaHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<SOURCE_ID>].ShnExt
+/data/etaHEN/cheats/<TITLE_ID>_<VERSION>.xml
+/data/etaHEN/cheats/<TITLE_ID>.xml
+```
+
+`PROCESS` is optional. `SOURCE_ID` is a stable physical-source discriminator.
+etaHEN loads every compatible source for the title/version/process, so
+independent JSON, SHN, MC4, ShnExt, and Illusion XML files can coexist. A source
+with an explicit process is only used for that process; a source without one is
+generic.
+
+Illusion PS-Game-Patch XML files use the active title ID and version to select
+matching `TitleID` and `AppVer` metadata; comma-separated versions and
+`AppVer="mask"` are accepted. Put upstream files in
+`/data/etaHEN/cheats/` with their `<TITLE_ID>.xml` names, or use the local
+`<TITLE_ID>_<VERSION>.xml` form. XML catalogs are not downloaded by
+`DOWNLOAD_CHEATS`. Direct addresses are resolved relative to the
+metadata's `ImageBase` (default `0x00400000`) and then to its `AppElf` module.
+The direct types `byte`, `bytes16`, `bytes32`, `bytes64`, `bytes`, `float32`,
+`float64`, `utf8`, and `utf16` are supported; `bytes` values may contain up to
+255 bytes. Pattern types `mask` and `mask_jump32` use two-digit hex byte pairs.
+Use `?` or `??` for wildcards; whitespace between pairs is optional. Both types
+accept a signed `Offset` from the match start. `mask` must resolve uniquely in
+readable module ranges. For `mask_jump32`, both the source pattern and exact
+`Target` code-cave signature must resolve uniquely in executable ranges, and
+both write ranges must remain executable. Its optional `Size` (minimum 5,
+default 5) controls the branch and NOP padding. If a pattern or target is
+missing or ambiguous, the entry is not applied. Disabling one-way patches
+restores the bytes captured when they were enabled; if live bytes changed,
+etaHEN refuses to overwrite them.
+Integer line values accept decimal numbers or hexadecimal values prefixed with
+`0x`, `#`, or `$`; values outside the selected type's width are rejected.
+String values support the format's `\n`, `\t`, `\r`, `\0`, `\\`, and
+`\xHH` escapes.
+
+For example, a `CUSA00001_01.00.xml` file can contain:
+
+```xml
+<Patch>
+  <TitleID><ID>CUSA00001</ID></TitleID>
+  <Metadata Name="Example 60 FPS" AppVer="01.00" AppElf="eboot.bin">
+    <PatchList>
+      <Line Type="bytes32" Address="0x00412345" Value="0x00000001"/>
+    </PatchList>
+  </Metadata>
+</Patch>
+```
+
+Cheats load from disk. If a file changes, etaHEN reloads it without restarting the whole stack.
+
+`DOWNLOAD_CHEATS` downloads a cheat catalog ZIP over HTTPS (GitHub or cnb.cool), extracts the `cheats/` tree, and copies `json/`, `shn/`, and `mc4/` files into this directory with their original names. `[cheats] mirror=auto` uses cnb.cool when the UI/system language is Simplified Chinese, otherwise GitHub.
+
+<br>
+
+# Build
+
+### Dependencies
+
+| Dependency | Purpose |
+| --- | --- |
+| [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) | Prospero compiler, target headers, runtime, and CMake wrapper |
+| CMake 3.20+ and Ninja | Configure and build the payload graph |
+| Clang / LLVM | Compile the `x86_64-sie-ps5` targets |
+| `lzma` or `xz` | Compress the bootstrapper |
+| Git and `curl` or `wget` | Initialize submodules and fetch external payload inputs |
+
+### Full build
+
+```shell
+git submodule update --init --recursive
+
+export PS5_PAYLOAD_SDK=/path/to/ps5-payload-sdk
+./scripts/build.sh --jobs 8
+```
+
+The script configures the project, fetches external dependencies, and builds
+the embed chain in the required order.
+
+For the reproducible Docker build:
+
+```shell
+docker compose build etahen-build
+docker compose run --rm etahen-build
+```
+
+### Common options
+
+| Option | Description |
+| --- | --- |
+| `--build-type Debug\|Release` | Select the CMake build type |
+| `--build-dir <path>` | Override the default `build/` directory |
+| `--cache-dir <path>` | Override `.cache/dependencies/` |
+| `--stub-missing` | Use compile-only placeholder external ELFs; never use on hardware |
+| `--skip-unpacker` | Stop after building the bootstrapper |
+| `--init-submodules` | Initialize submodules before dependency sync |
+
+Run `./scripts/build.sh --help` for the complete option list.
+
+### Outputs
+
+| Path | Description |
+| --- | --- |
+| `build/bin/etaHEN.elf` | Final payload sent to the console |
+| `build/bin/bootstrapper.elf` | Uncompressed bootstrapper |
+| `build/bin/bootstrapper.elf.lzma` | Bootstrapper embedded by the final payload |
+| `build/bin/daemon.elf` | Critical daemon |
+| `build/bin/util.elf` | Utility daemon |
+| `build/bin/shellui.elf` | Toolbox injection payload |
+| `build/lib/*.a` | In-tree static libraries |
+
+Build outputs stay in `build/`. Downloads are cached in `.cache/dependencies/`.
+Nothing is written back into `source/`.
+
+### Tests
+
+Host tests cover settings, IPC, payload helpers, cheat parsers, relocation,
+Toolbox routing, and shared platform code:
+
+```shell
+make -C source/util/tests clean
+make -C source/util/tests test -j8
+```
+
+Linking the host tests needs Keystone on `KEYSTONE_PREFIX`
+(default: `/opt/homebrew`).
+
+<br>
+
+# Configuration
+
+etaHEN reads and writes the same config in two places:
+
+```text
+/data/etaHEN/config.ini
+/user/data/etaHEN/config.ini
+```
+
+Most options can be changed in the Toolbox. The format is
+`schema_version=1`. If no file exists, etaHEN writes a commented
+default from [`config.ini.example`](config.ini.example).
+
+The Custom PKG Installer stores folders as `pkg.search_path_0` through
+`pkg.search_path_7`. Installation progress is shown by the PS5 system
+installer. Firmware-specific package support still needs console validation.
+
+| Key | Default | Values |
+| --- | --- | --- |
+| `meta.schema_version` | `1` | `1` |
+| `toolbox.language` | `system` | `system`, `zh-Hans`, `zh-Hant`, `en`, `ja`, `ko`, `fr`, `de`, `it`, `es`, `pt-BR`, `pl`, `ru`, `ar`, `th` |
+| `pkg.search_path_count` / `pkg.search_path_N` | `1` / `/data/etaHEN/pkgs` | Up to 8 absolute `/data` or `/mnt` folder paths |
+| `startup.open_after_load` | `none` | `none`, `home_menu` |
+| `home_screen.show_title_ids` | `false` | `true`, `false` |
+| `game_menu.show_etahen_options` | `true` | `true`, `false` |
+| `rest_mode.resume_reinject_delay_seconds` | `10` | `0` through `255` seconds |
+| `cheats.mirror` | `auto` | `auto`, `github`, `cnb` |
+| `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
+| `cooling.fan_control` | `automatic` | `automatic`, `temperature_threshold` |
+| `cooling.temperature_threshold_celsius` | `77` | `0` through `100` |
+| `overlay.enabled` | `true` | `true`, `false` |
+| `overlay.background` | `true` | `true`, `false` |
+| `overlay.edge` | `top` | `top`, `bottom` |
+| `overlay.align` | `center` | `left`, `center`, `right` |
+| `overlay.font_size` | `medium` | `small`, `medium`, `large` |
+| `overlay.order` | `fps,cpu,gpu,memory,ip,fan` | comma-separated `fps`, `cpu`, `gpu`, `memory`, `ip`, `fan` |
+| `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` / `overlay.show_fps` | `true` | `true`, `false` |
+| `overlay.cpu_usage_mode` | `average` | `average`, `per_core` |
+| `overlay.show_ip_address` | `false` | `true`, `false` |
+| `shortcuts.cheats_menu` | `off` | `off`, `r3_l3`, `l2_triangle`, `long_options`, `long_share`, `share` |
+| `shortcuts.toolbox` | `off` | `off`, `l2_r3`, `long_share`, `share` |
+
+### Runtime data
+
+| Path | Purpose |
+| --- | --- |
+| `/data/etaHEN/payloads/` | User payload ELFs |
+| `/data/etaHEN/plugins/` | Descriptor-bearing etaHEN plugin ELFs |
+| `/data/etaHEN/cheats/` | Cheat files |
+| `/data/etaHEN/cheats_tmp/` | Temporary HTTPS ZIP and extraction files, cleaned after sync |
+| `/data/etaHEN/kstuff.elf` | Optional runtime override with priority over the embedded `kstuff` |
+| `/data/etaHEN/etaHEN.log` | Main runtime log |
+| `/data/etaHEN/etaHEN_crash.log` | Preserved daemon signal and backtrace log |
+| `/data/etaHEN/etaHEN_util_daemon.log` | Utility daemon log |
+
+<br>
+
+# Host tools
+
+| Tool | Purpose |
+| --- | --- |
+| [`scripts/daemon_log.py`](scripts/daemon_log.py) | Stream daemon logs; use [`scripts/capture_klog.py`](scripts/capture_klog.py) to capture kernel logs |
+| [`scripts/shutdown_eta.py`](scripts/shutdown_eta.py) | Shut down the etaHEN userland stack without killing `kstuff` |
+| [`scripts/ps5_cmake.sh`](scripts/ps5_cmake.sh) | Run CMake through the PS5 payload SDK |
+| [`scripts/sync_dependencies.sh`](scripts/sync_dependencies.sh) | Fetch or build external payload inputs |
+
+<br>
+
+# Repository layout
+
+```text
+.
+├── assets/                    Project artwork
+├── docs/                      Architecture and technical notes
+├── scripts/                   Build, dependency, and host-side helpers
+├── source/                    In-tree PS5 sources
+│   ├── bootstrapper/          Startup and embedded payload chain
+│   ├── daemon/                Critical daemon and Toolbox injection
+│   ├── util/                  Utility daemon, IPC, and cheats
+│   ├── shellui/               Toolbox and ShellUI hooks
+│   ├── i18n/                  Shared Toolbox / notification locale catalogs
+│   ├── unpacker/              Final etaHEN payload wrapper
+│   ├── libeta_*/            Shared in-tree libraries
+│   ├── common/                Shared low-level implementations
+│   └── platform/ps5/stubs/    PS5 system-library link stubs
+├── third_party/               External source, archives, and submodules
+├── tools/                     Repository-side generators
+├── build/                     Generated build outputs (ignored)
+└── .cache/dependencies/       Downloaded external inputs (ignored)
+```
+
+See [the architecture document](docs/arch.md) for the complete module and IPC map.
+
+<br>
+
+# Troubleshooting
+
+1. Before loading etaHEN, make sure the external `elfldr` is reachable on port **9021**.
+2. Make sure the payload was built for this firmware with a complete PS5 Payload SDK.
+3. If the Toolbox does not appear, wait for `util → kstuff → daemon` to finish and check the logs.
+4. If the build cannot get `kstuff.elf`, run `./scripts/sync_dependencies.sh` again or initialize the submodule.
+5. When you report a problem, include firmware, exploit host, SDK version, build type, logs, and steps to reproduce.
+
+<br>
+
+# Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+<br>
+
+# Support
+
+<a href="https://ko-fi.com/0xp0co"><img src="https://img.shields.io/badge/Ko--fi-Support-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="Support etaHEN on Ko-fi"/></a>
+
+For Chinese users, you can also scan the QR codes below to donate:
+
+国内用户也可以扫描下方二维码进行捐赠：
+
+| Alipay (CN) | WeChat (CN) |
+| --- | --- |
+| <img src="assets/donation_alipay_cn.JPG" width="200" alt="Alipay"/> | <img src="assets/donation_wechat_cn.JPG" width="200" alt="WeChat"/> |
+
+If etaHEN is useful to you, consider supporting further development. Thank you.
+
+<br>
+
+# Credits
+
+etaHEN exists because of the PS5 homebrew and reverse-engineering community.
+
+### Contributors
+
+<p align="center">
+  <a href="https://github.com/TOSanthony/etaHEN-2.6B/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=TOSanthony/etaHEN-2.6B" alt="etaHEN contributors"/>
+  </a>
+</p>
+
+### Based on
+
+- [etaHEN](https://github.com/LightningMods/etaHEN) — LightningMods and contributors; source base of this tree
+- [GoldHEN](https://github.com/GoldHEN/GoldHEN) — SiSTR0 and contributors; the PS4 all-in-one HEN this project takes after
+
+### Referenced
+
+- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch, sleirsgoevy, and contributors; Rest Mode Toolbox recovery follows its SceSysCore `NOTE_EXEC` watch for `NPXS40087` and wait for `libSceNpTrophy.sprx` / `libSceNpTrophy2.sprx`
+- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk; listen-socket rebind after Rest Mode (Unix IPC and TCP accept-fail self-heal) follows this project
+- [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87; the community cheat collection downloaded by the built-in cheat sync
+- [PHU Games Tools](https://github.com/ArkSama) — ArkSama; the in-game FPS counter follows PHU Games Tools skip-hook sampling (`/dev/dce` scanout and DMAP reads of `libSceAgcDriver`)
+
+### Used or embedded
+
+- [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero toolchain and headers
+- [elfldr](https://github.com/ps5-payload-dev/elfldr) — first-hop loader on port 9021; not shipped in the payload
+- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch, sleirsgoevy, and contributors; optional `kstuff.elf`
+- [etaHEN-ftpsrv-plugin](https://github.com/EtaBuddies/etaHEN-ftpsrv-plugin) — optional external FTP server plugin based on drakmor/ftpsrv
+- [etaHEN-shadowmountplus-plugin](https://github.com/EtaBuddies/etaHEN-shadowmountplus-plugin) — optional external ShadowMount+ scanner/mounter plugin based on Drakmor's project
+- [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky; process hijack and kernel R/W
+- [NineS](https://github.com/buzzer-re/NineS) — buzzer-re; ShellUI injection
+- [cJSON](https://github.com/DaveGamble/cJSON) — JSON parsing
+- [7-Zip LZMA SDK](https://www.7-zip.org/sdk.html) — unpacker decompression
+- [miniz](https://github.com/richgel999/miniz) — cheat-file decompression
+
+### Testers
+
+即食面, 雨之声, 大饼电玩, 安定区, 随风, 麒麟, 尼克库尔曼, 云, 啊烦, 小小蔡, B站谢锡榆, 荆枫
+
+Thanks as well to everyone else who tested, researched, or sent usable feedback.
+
+<br>
+
+# License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
+Third-party components retain their respective licenses and notices.
+
+> etaHEN is an unofficial homebrew project and is not affiliated with Sony Interactive Entertainment.
+> Use it only on hardware you own and at your own risk. No warranty is provided.

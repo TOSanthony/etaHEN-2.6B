@@ -1,0 +1,140 @@
+name: Bug report
+description: Crash, hang, missing UI, or a feature that does not work
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Firmware, loader, and other running payloads matter more than a long write-up.
+        For a kernel panic or ShellUI crash/restart, load [klogsrv](https://github.com/ps5-payload-dev/klogsrv) before reproducing. From a PC on the same network, run `nc <PS5-IP> 3232 > klog.txt`, reproduce the problem, then stop capture with Ctrl+C. Windows users can run [`scripts/capture_klog.py`](https://github.com/TOSanthony/etaHEN-2.6B/blob/main/scripts/capture_klog.py) with `python scripts/capture_klog.py <PS5-IP> --output klog.txt` instead. `etaHEN_crash.log` may be empty for these system crashes.
+
+  - type: input
+    id: version
+    attributes:
+      label: etaHEN version
+      placeholder: "v0.0.9"
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware
+      placeholder: "7.61"
+    validations:
+      required: true
+
+  - type: input
+    id: console_model
+    attributes:
+      label: PS5 model
+      description: 'Include the family (base, Slim, or Pro) and CFI number if known; use Not sure if unknown.'
+      placeholder: 'PS5 Slim, CFI-20xx'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: loader
+    attributes:
+      label: How was it loaded
+      options:
+        - PS5 Payload Manager (PLDMGR)
+        - elfldr on 9021
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kstuff
+    attributes:
+      label: Bundled kstuff state at startup
+      description: For boot or kernel-panic issues, note whether bundled kstuff was enabled or external kstuff was running.
+      options:
+        - Bundled kstuff enabled
+        - Bundled kstuff disabled; external kstuff was started before etaHEN
+        - Bundled kstuff disabled; no external kstuff
+        - Not sure or not applicable
+
+  - type: input
+    id: kstuff_build
+    attributes:
+      label: External kstuff version/build
+      description: If external kstuff was running, include its version and build type if known (for example, v1.10 lite or fpkg).
+      placeholder: 'v1.10 lite'
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Does not boot
+        - Toolbox missing
+        - Cheats
+        - Monitor bar
+        - Fan control
+        - Payloads
+        - Rest Mode
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: What happened
+      description: >-
+        Steps from loading etaHEN, plus the Title ID and game version if a game is involved.
+        For cheat issues, paste the exact failing entry or attach its file; do not include an unrelated cheat collection.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+
+  - type: textarea
+    id: cheat_context
+    attributes:
+      label: Cheat file and entry details
+      description: >-
+        For cheat issues, attach only the affected cheat file or paste one exact entry. Include its name, selected value or dropdown option, and whether the error happened while enabling or disabling. ZIP `.shn` / `.mc4` / `.ShnExt` files before attaching. Do not attach game dumps.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: other_payloads
+    attributes:
+      label: Other homebrew also running
+      description: Loading another HEN or hotkey injector first can hang or power off the console.
+      options:
+        - label: None
+        - label: etaHEN
+        - label: CheatRunner
+        - label: PHU Tools
+        - label: YonCore
+        - label: Kylin Core
+        - label: Other
+
+  - type: textarea
+    id: payload_timing
+    attributes:
+      label: Payload load order and timing
+      description: List other payloads/plugins in the order they start, the delay before etaHEN is loaded, and whether external USB storage is connected.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >-
+        Attach `/data/etaHEN/etaHEN_crash.log` for a daemon crash, plus relevant lines from `etaHEN.log` and `etaHEN_util_daemon.log`. For a kernel panic or ShellUI crash/restart, attach the `klog.txt` captured from klogsrv TCP port `3232` if available.
+      render: text
+    validations:
+      required: true

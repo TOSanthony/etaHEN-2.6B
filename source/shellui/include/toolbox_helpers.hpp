@@ -1,0 +1,107 @@
+/* Copyright (C) 2025 etaHEN / LightningMods
+ *
+ * Host-testable ShellUI helpers (no Mono or PS5-specific calls).
+ */
+#pragma once
+
+#include <eta/elf_name.h>
+
+#include <cstddef>
+#include <cstring>
+#include <string>
+#include <sys/stat.h>
+
+namespace toolbox {
+
+/**
+ * UI-facing path: strip "/user" mount prefix, map "/usb*" → "/mnt/usb*".
+ * Only exact "/user" or paths under "/user/…" (not "/userdata").
+ */
+inline std::string display_path_for_ui(const std::string &path) {
+  if (path == "/user")
+    return {};
+  if (path.rfind("/user/", 0) == 0)
+    return path.substr(5); /* keep leading '/' of remainder */
+  if (path.rfind("/usb", 0) == 0)
+    return "/mnt" + path;
+  return path;
+}
+
+/**
+ * True for payload basenames: must end with ".elf" and have a non-empty stem.
+ * Rejects .auto_start markers and bare ".elf".
+ */
+inline bool is_payload_elf_name(const char *name) {
+  if (!name || !name[0])
+    return false;
+  if (std::strcmp(name, ".") == 0 || std::strcmp(name, "..") == 0)
+    return false;
+  if (std::strstr(name, ".auto_start") != nullptr)
+    return false;
+  const std::size_t n = std::strlen(name);
+  return eta_elf_name_has_suffix(name, n) &&
+         eta_elf_name_stem_n(name, n) > 0;
+}
+
+inline bool is_installed_payload_path(const std::string &path) {
+  const std::string canonical = display_path_for_ui(path);
+  const std::size_t slash = canonical.find_last_of('/');
+  if (slash == std::string::npos || canonical.find('\0') != std::string::npos)
+    return false;
+  const std::string parent = canonical.substr(0, slash);
+  return (parent == "/data/etaHEN/payloads" ||
+          parent == "/data/etahen/payloads") &&
+         is_payload_elf_name(canonical.c_str() + slash + 1);
+}
+
+inline bool has_real_payload_directory(const std::string &path) {
+  const auto slash = path.find_last_of('/');
+  if (slash == std::string::npos)
+    return false;
+  const std::string directory = path.substr(0, slash);
+  const auto parent = directory.find_last_of('/');
+  if (parent == std::string::npos)
+    return false;
+  struct stat st {};
+  return lstat(directory.substr(0, parent).c_str(), &st) == 0 &&
+         S_ISDIR(st.st_mode) && lstat(directory.c_str(), &st) == 0 &&
+         S_ISDIR(st.st_mode);
+}
+
+/**
+ * Previous builds left runtime staging files in the visible /data payload
+ * directory. Keep their reserved identity format out of the list after upgrade.
+ */
+inline bool is_legacy_payload_staging_name(const char *name) {
+  if (!name || std::strlen(name) != 21 || name[0] != 'p' ||
+      std::strcmp(name + 17, ".elf") != 0)
+    return false;
+  for (std::size_t i = 1; i < 17; ++i) {
+    const char c = name[i];
+    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+      return false;
+  }
+  return true;
+}
+
+/**
+ * Launch/PID key for payload: "foo.elf" → "foo".
+ * Matches util eta_payload_elf_key_from_name.
+ */
+inline bool elf_key_from_name(const char *name, char *out, std::size_t out_sz) {
+  if (!name || !out || out_sz < 2)
+    return false;
+  const char *base = std::strrchr(name, '/');
+  base = base ? base + 1 : name;
+  if (!base[0] || std::strcmp(base, ".") == 0 || std::strcmp(base, "..") == 0)
+    return false;
+  std::size_t n = eta_elf_name_stem_n(base, std::strlen(base));
+  if (n == 0)
+    return false;
+  if (n >= out_sz)
+    n = out_sz - 1;
+  std::memcpy(out, base, n);
+  out[n] = '\0';
+  return out[0] != '\0';}
+
+} // namespace toolbox

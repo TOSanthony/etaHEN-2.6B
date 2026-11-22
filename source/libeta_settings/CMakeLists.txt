@@ -1,0 +1,28 @@
+###################################################################################################
+# etaHEN shared settings (single INI schema for daemon / util / shellui)
+###################################################################################################
+
+cmake_minimum_required(VERSION 3.20)
+
+set(basename "eta_settings")
+project(${basename} C CXX)
+
+eta_module_prologue(C_STANDARD 11 CXX_STANDARD 20)
+
+set(D_CWD "${PROJECT_SOURCE_DIR}")
+
+add_library(${PROJECT_NAME} STATIC
+  source/settings.cpp
+)
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
+
+set(CMAKE_C_FLAGS "${ETA_PS5_TARGET_FLAGS_MARCH} ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -fstack-protector-all")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Wextra -Werror -fno-exceptions")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g0 -O2")
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC  "${D_CWD}/include"
+  PRIVATE "${D_CWD}/../include"
+)
+

@@ -1,0 +1,19 @@
+#pragma once
+
+#include "ps5_settings_ui.hpp"
+#include "monodef.h"
+
+#include <functional>
+
+namespace eta::shellui::settings {
+
+using PageSource = std::function<bool(ps5ui::Node &)>;
+// Called while serving initial XML. The source must not navigate or publish.
+std::string publish(const ps5ui::Node &model, PageSource source);
+void bind(MonoObject *page);
+void refresh(MonoObject *page);
+void release(MonoObject *page);
+bool reset_element(MonoObject *page, const std::string &id);
+bool set_enabled(MonoObject *element, bool enabled);
+
+} // namespace eta::shellui::settings
