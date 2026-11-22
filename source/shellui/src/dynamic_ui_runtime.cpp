@@ -121,9 +121,22 @@ bool render_resource(std::string_view resource, std::string &out_xml) {
   std::string page_id;
   const plugin_ui::ContributionSnapshot *entry =
       resolve_resource(runtime.snapshot, resource, &page_id);
-  if (!entry || !entry->document) return false;
+  /* A plugin page that cannot be rendered must never fall through to the stock
+   * resource loader: the resource does not exist there and ShellUI would crash.
+   * Serve a harmless placeholder page instead. */
+  const bool plugin_resource = resource.rfind("eta_ui_", 0) == 0 ||
+                               resource.find(".eta_ui_") != std::string_view::npos;
+  const auto fallback = [&]() {
+    ps5ui::Page page("id_eta_ui_unavailable", "Plugin");
+    page.label("id_eta_ui_unavailable_msg",
+               "This plugin page is not available right now");
+    out_xml = page.build();
+    return true;
+  };
+  if (!entry || !entry->document) return plugin_resource ? fallback() : false;
   RenderResult rendered = render_page(*entry->document, page_id, runtime.profile);
-  if (rendered.status != RenderStatus::Ok) return false;
+  if (rendered.status != RenderStatus::Ok)
+    return plugin_resource ? fallback() : false;
   out_xml = std::move(rendered.xml);
   const bool already_active = !runtime.page_stack.empty() &&
       runtime.page_stack.back().contribution.handle == entry->handle &&
