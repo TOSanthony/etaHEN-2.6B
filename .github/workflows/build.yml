@@ -81,13 +81,11 @@ jobs:
           ln -s "../../util/assets" "build/util/assets"
           ln -s "../../daemon/assets" "build/daemon/assets"
 
-          # Byepervisor kernel payload (hen.bin) is #incbin'd by the bootstrapper
-          ( cd bootstrapper/Byepervisor/hen
-            make CXX="$PS5_PAYLOAD_SDK/bin/prospero-clang++ -Qunused-arguments" AS="$PS5_PAYLOAD_SDK/bin/prospero-clang" \
-                 PS5_PAYLOAD_SDK="$PS5_PAYLOAD_SDK/" CFLAGS_EXTRA= 
-            ls -l hen.bin )
+          # bootstrapper #incbin's ../hen/hen.bin (Byepervisor kernel payload, only used on
+          # old firmwares that allow the hypervisor exploit). It does not compile against
+          # the current SDK headers, so an empty placeholder is provided for 22.6 builds.
           mkdir -p build/hen
-          cp bootstrapper/Byepervisor/hen/hen.bin build/hen/hen.bin
+          : > build/hen/hen.bin
 
           cd build
 
