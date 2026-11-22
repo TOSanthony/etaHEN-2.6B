@@ -43,6 +43,23 @@ jobs:
           [ -n "${PS5_CROSS_FIX_ROOT:-}" ] && ${PS5_CROSS_FIX_ROOT} "${DESTDIR}/${PREFIX}" || true
           ls -l "${DESTDIR}/${PREFIX}/lib/libcrypto.a" "${DESTDIR}/${PREFIX}/lib/libssl.a"
 
+      - name: Build SQLite (static) for the PS5 SDK
+        # bootstrapper links -lsqlite3; recipe from pacbrew-repo (sqlite/PKGBUILD).
+        run: |
+          export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+          source "$PS5_PAYLOAD_SDK/toolchain/prospero.sh"
+          wget -q https://www.sqlite.org/2024/sqlite-src-3460100.zip
+          echo "def3fc292eb9ecc444f6c1950e5c79d8462ed5e7b3d605fd6152d145e1d5abb4  sqlite-src-3460100.zip" | sha256sum -c -
+          unzip -q sqlite-src-3460100.zip
+          cd sqlite-src-3460100
+          ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd --enable-static --disable-shared --disable-tcl
+          ${MAKE:-make} -j"$(nproc)" sqlite3.h libsqlite3.la
+          make lib_install DESTDIR="${DESTDIR}"
+          install -d "${DESTDIR}/${PREFIX}/include/"
+          install -m 0644 sqlite3.h "${DESTDIR}/${PREFIX}/include/"
+          [ -n "${PS5_CROSS_FIX_ROOT:-}" ] && ${PS5_CROSS_FIX_ROOT} "${DESTDIR}/${PREFIX}" || true
+          ls -l "${DESTDIR}/${PREFIX}/lib/libsqlite3.a"
+
       - name: Prepare Assets
         env:
           GH_TOKEN: ${{ github.token }}
