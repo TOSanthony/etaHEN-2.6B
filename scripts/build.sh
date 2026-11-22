@@ -373,8 +373,8 @@ main() {
     -DCMAKE_TOOLCHAIN_FILE="${ROOT}/plugins/ftpsrv/cmake/ps5-toolchain.cmake" \
     -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
   cmake --build "${BUILD}/ftpsrv" -j"${JOBS}"
-  [[ -f "${BUILD}/ftpsrv/bin/ftpsrv.elf" ]] || die "missing ftpsrv.elf after plugin build"
-  cp "${BUILD}/ftpsrv/bin/ftpsrv.elf" "${BIN}/ftpsrv.elf"
+  [[ -f "${BUILD}/ftpsrv/bin/FTPS00001.elf" ]] || die "missing FTPS00001.elf after plugin build"
+  cp "${BUILD}/ftpsrv/bin/FTPS00001.elf" "${BIN}/ftpsrv.elf"
   ok "built ftpsrv.elf"
 
   # Phase 3 — bootstrapper (embeds daemon/util + kstuff + assets)
