@@ -129,7 +129,7 @@ eta_status plugin_ui_create(const plugin_ui_state *state, eta_ui_document **out_
     snprintf(d.plugin_id, sizeof(d.plugin_id), "%s", PLUGIN_ID);
     snprintf(d.contribution_id, sizeof(d.contribution_id), "%s", CONTRIBUTION_ID);
     snprintf(d.title, sizeof(d.title), "%s", PLUGIN_NAME);
-    snprintf(d.description, sizeof(d.description), TR("Jeux PS4 en mode PS4 Pro (ps-patch-system + NeoEnabler)", "PS4 games in PS4 Pro mode (ps-patch-system + NeoEnabler)"));
+    snprintf(d.description, sizeof(d.description), TR("Jeux PS4 en mode PS4 Pro", "PS4 games in PS4 Pro mode"));
     snprintf(d.root_page_id, sizeof(d.root_page_id), "main");
     eta_status status = eta_ui_document_create(&d, out_document);
     if (status != ETA_OK) return status;
