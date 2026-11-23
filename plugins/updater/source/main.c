@@ -8,6 +8,7 @@
 
 #include <signal.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/syscall.h>
@@ -17,6 +18,7 @@
 #include "plugin_config.h"
 #include "plugin_settings.h"
 #include "plugin_ui.h"
+#include "progress_file.h"
 
 #define CONNECT_ATTEMPTS 30
 #define CONNECT_RETRY_US (250 * 1000)
@@ -113,25 +115,24 @@ static void fallback_list(plugin_list *list) {
 
 static void set_status(plugin_app *app, const char *text) {
     snprintf(app->status, sizeof(app->status), "%s", text);
-    if (app->ui_handle != 0)
-        (void)eta_ui_set_value(&app->services, app->ui_handle, "status", ETA_UI_VALUE_STRING,
-                               app->status);
+    log_message(app, "[%s] %s\n", PLUGIN_ID, text);
 }
 
+/* Overall progress of the current install session (one or several plugins). */
 typedef struct progress_user {
     plugin_app *app;
     const char *id;
+    unsigned index; /* 0-based position in the session */
+    unsigned total;
 } progress_user;
 
 static void on_progress(void *user, unsigned pct, size_t got, size_t total) {
+    (void)got;
+    (void)total;
     progress_user *pu = (progress_user *)user;
-    char bar[11];
-    for (unsigned i = 0; i < 10; ++i) bar[i] = (i < pct / 10) ? '#' : '-';
-    bar[10] = '\0';
-    char text[96];
-    snprintf(text, sizeof text, "%s [%s] %u %% (%u/%u Ko)", pu->id, bar, pct,
-             (unsigned)(got / 1024), (unsigned)(total / 1024));
-    set_status(pu->app, text);
+    char phase[96];
+    snprintf(phase, sizeof phase, "Telechargement %s (%u/%u)", plugin_label(pu->id), pu->index + 1, pu->total);
+    progress_update((pu->index * 100u + pct) / (pu->total ? pu->total : 1u), phase);
 }
 
 static void rebuild_ui(plugin_app *app) {
@@ -176,29 +177,47 @@ static void refresh_list(plugin_app *app, int force) {
     rebuild_ui(app);
 }
 
-static int install_one(plugin_app *app, const char *id) {
+/* Installs one plugin as step `index` of a `total`-step session (progress is
+ * published for the ShellUI panel by on_progress). Returns 1 on success. */
+static int install_one(plugin_app *app, const char *id, unsigned index, unsigned total, char *err,
+                       size_t err_size) {
     char detail[160] = "";
-    const char *label = plugin_label(id);
-    progress_user pu = {app, id};
+    progress_user pu = {app, id, index, total};
     log_message(app, "[%s] downloading %s (channel=%s)\n", PLUGIN_ID, id,
                 app->settings.channel ? "latest" : "nightly");
-    set_status(app, "Connexion...");
+    char phase[96];
+    snprintf(phase, sizeof phase, "Connexion %s (%u/%u)", plugin_label(id), index + 1, total);
+    progress_update(index * 100u / (total ? total : 1u), phase);
     dl_result r = downloader_install_plugin(id, app->settings.channel, on_progress, &pu, detail,
                                             sizeof detail);
     if (r == DL_OK) {
-        char text[96];
-        snprintf(text, sizeof text, "%s : installe", id);
-        set_status(app, text);
         log_message(app, "[%s] %s installed\n", PLUGIN_ID, id);
-        send_notification(app, "Plugin Updater\n%s : installe. Redemarre le plugin.", label);
         return 1;
     }
-    char text[96];
-    snprintf(text, sizeof text, "%s : echec (%s)", id, result_text(r));
-    set_status(app, text);
     log_message(app, "[%s] %s failed (%s): %s\n", PLUGIN_ID, id, result_text(r), detail);
-    send_notification(app, "Plugin Updater\n%s : echec (%s)\n%s", label, result_text(r), detail);
+    snprintf(err, err_size, "%s : echec (%s)", plugin_label(id), result_text(r));
     return 0;
+}
+
+/* One progress session over `ids` (the ShellUI shows a native progress panel). */
+static void install_session(plugin_app *app, const char *const *ids, unsigned total) {
+    if (total == 0) return;
+    unsigned ok = 0;
+    char err[96] = "";
+    progress_begin("Plugin Updater", "Preparation...");
+    for (unsigned i = 0; i < total; ++i) ok += (unsigned)install_one(app, ids[i], i, total, err, sizeof err);
+    char text[128];
+    if (ok == total) {
+        if (total == 1) snprintf(text, sizeof text, "%s : installe", plugin_label(ids[0]));
+        else snprintf(text, sizeof text, "%u plugins installes", total);
+    } else if (total == 1) {
+        snprintf(text, sizeof text, "%s", err);
+    } else {
+        snprintf(text, sizeof text, "%u / %u plugins installes", ok, total);
+    }
+    progress_end(ok == total, text);
+    set_status(app, text);
+    send_notification(app, "Plugin Updater\n%s%s", text, ok ? "\nRedemarre les plugins mis a jour." : "");
 }
 
 static eta_status connect_to_daemon(plugin_app *app) {
@@ -279,20 +298,19 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
     case PLUGIN_UI_ACTION_REFRESH:
         refresh_list(app, 1);
         return ETA_OK;
-    case PLUGIN_UI_ACTION_STATUS_EDIT:
-        set_status(app, app->status); /* read-only field: put the text back */
-        return ETA_OK;
     case PLUGIN_UI_ACTION_INSTALL_ONE:
-        for (unsigned i = 0; i < app->list.count; ++i)
-            if (strcmp(app->list.ids[i], action->plugin_id) == 0) install_one(app, app->list.ids[i]);
+        for (unsigned i = 0; i < app->list.count; ++i) {
+            if (strcmp(app->list.ids[i], action->plugin_id) == 0) {
+                const char *one[1] = {app->list.ids[i]};
+                install_session(app, one, 1);
+            }
+        }
         return ETA_OK;
     case PLUGIN_UI_ACTION_INSTALL_ALL: {
-        unsigned ok = 0, total = app->list.count;
-        for (unsigned i = 0; i < total; ++i) ok += (unsigned)install_one(app, app->list.ids[i]);
-        char text[96];
-        snprintf(text, sizeof text, "%u / %u plugin(s) installe(s)", ok, total);
-        set_status(app, text);
-        send_notification(app, "Plugin Updater\n%s", text);
+        const char *all[DL_MAX_PLUGINS];
+        unsigned n = app->list.count < DL_MAX_PLUGINS ? app->list.count : DL_MAX_PLUGINS;
+        for (unsigned i = 0; i < n; ++i) all[i] = app->list.ids[i];
+        install_session(app, all, n);
         return ETA_OK;
     }
     case PLUGIN_UI_ACTION_RESTORE:

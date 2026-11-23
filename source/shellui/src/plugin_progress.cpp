@@ -29,6 +29,8 @@
 #include <mutex>
 #include <pthread.h>
 #include <ranges>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <time.h>
 #include <unistd.h>
@@ -74,6 +76,9 @@ struct PluginProgress {
   bool cancel_cleared = false;
   int applied_progress = -1;
   int applied_bar_status = -1;
+  /* Session driven by a plugin through kExternalFile (no IPC worker). */
+  bool external = false;
+  uint64_t external_seq = 0;
 };
 
 namespace {
@@ -134,6 +139,8 @@ void reset_progress_locked() {
   g_progress.phase.clear();
   g_progress.error.clear();
   g_progress.cancel_cleared = false;
+  g_progress.external = false;
+  g_progress.external_seq = 0;
   g_plugin_auto_return.reset();
   release_widget(g_progress.page);
 }
@@ -173,6 +180,12 @@ Presentation presentation_locked() {
 
   switch (g_progress.state) {
   case ProgressState::Running: {
+    if (g_progress.external) {
+      view.phase = g_progress.phase;
+      view.bar_progress = g_progress.displayed_progress;
+      view.percent = std::to_string(view.bar_progress) + '%';
+      return view;
+    }
     if (g_progress.is_start) {
       if (g_progress.phase == "loading_ui") {
         view.phase = toolbox_i18n::tr("plugins.external.progress_starting_sub");
@@ -196,7 +209,9 @@ Presentation presentation_locked() {
     view.bar_progress = 100;
     return view;
   case ProgressState::Error:
-    view.phase = toolbox_i18n::tr("plugins.external.progress_failed");
+    view.phase = (g_progress.external && !g_progress.phase.empty())
+                     ? g_progress.phase
+                     : toolbox_i18n::tr("plugins.external.progress_failed");
     view.bar_progress = std::clamp(g_progress.progress, 0, 100);
     view.bar_status = 2;
     return view;
@@ -688,7 +703,102 @@ bool plugin_progress_handle_popping(MonoObject *outgoing) {
   return true;
 }
 
+namespace {
+
+/* A plugin that runs a long operation (e.g. the Plugin Updater downloading
+ * ELFs) publishes its state in this small key=value file; the ShellUI shows the
+ * same native progress panel as for plugin start/stop.
+ *   seq=<increasing id>  state=running|ok|error  title=...  phase=...  percent=0..100 */
+constexpr const char *kExternalFile = "/data/etaHEN/plugin_progress.txt";
+
+struct ExternalState {
+  uint64_t seq = 0;
+  std::string state, title, phase;
+  int percent = 0;
+};
+
+bool read_external_file(ExternalState &out) {
+  FILE *f = std::fopen(kExternalFile, "r");
+  if (!f) return false;
+  char line[300];
+  bool any = false;
+  while (std::fgets(line, sizeof(line), f)) {
+    std::string l(line);
+    while (!l.empty() && (l.back() == '\n' || l.back() == '\r')) l.pop_back();
+    const size_t eq = l.find('=');
+    if (eq == std::string::npos) continue;
+    const std::string k = l.substr(0, eq), v = l.substr(eq + 1);
+    if (k == "seq") { out.seq = std::strtoull(v.c_str(), nullptr, 10); any = true; }
+    else if (k == "state") out.state = v;
+    else if (k == "title") out.title = v;
+    else if (k == "phase") out.phase = v;
+    else if (k == "percent") out.percent = std::clamp(std::atoi(v.c_str()), 0, 100);
+  }
+  std::fclose(f);
+  return any;
+}
+
+uint64_t monotonic_ms() {
+  timespec ts{};
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return static_cast<uint64_t>(ts.tv_sec) * 1000u + static_cast<uint64_t>(ts.tv_nsec / 1000000);
+}
+
+/* Called every frame on the ShellUI thread; reads the file ~6 times a second. */
+void poll_external_progress() {
+  static uint64_t next_ms = 0;
+  static bool seeded = false;
+  static uint64_t last_seq = 0;
+  const uint64_t now = monotonic_ms();
+  if (now < next_ms) return;
+  next_ms = now + 150;
+
+  ExternalState f;
+  const bool have = read_external_file(f);
+  bool open_page = false;
+  {
+    std::lock_guard<std::mutex> lock(g_progress.mu);
+    if (!seeded) { /* ignore whatever a previous run left behind */
+      seeded = true;
+      last_seq = have ? f.seq : 0;
+      return;
+    }
+    if (!have) return;
+    if (g_progress.external && g_progress.external_seq == f.seq) {
+      if (g_progress.state == ProgressState::Running) {
+        g_progress.progress = f.percent;
+        g_progress.phase = f.phase;
+        if (f.state == "ok") g_progress.state = ProgressState::Ok;
+        else if (f.state == "error") g_progress.state = ProgressState::Error;
+      }
+      return;
+    }
+    if (f.seq > last_seq && f.state == "running" &&
+        !(g_progress.state == ProgressState::Running && !g_progress.external) &&
+        shellui_hooks_are_ready()) {
+      last_seq = f.seq;
+      g_session_generation.fetch_add(1, std::memory_order_acq_rel);
+      reset_progress_locked();
+      g_progress.state = ProgressState::Running;
+      g_progress.external = true;
+      g_progress.external_seq = f.seq;
+      g_progress.plugin_name = f.title;
+      g_progress.progress = f.percent;
+      g_progress.displayed_progress = 0;
+      g_progress.phase = f.phase;
+      open_page = true;
+    } else if (f.seq > last_seq) {
+      last_seq = f.seq; /* finished before we saw it, or busy: skip */
+    }
+  }
+  if (open_page && !plugin_progress_open_page())
+    LOG_ERROR("plugin_progress: cannot open the progress page for an external session");
+}
+
+} // namespace
+
 void shellui_poll_plugin_progress(void) {
+  poll_external_progress();
   toolbox::ProgressOutcome outcome = toolbox::ProgressOutcome::Ongoing;
   {
     std::lock_guard<std::mutex> lock(g_progress.mu);

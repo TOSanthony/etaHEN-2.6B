@@ -46,6 +46,7 @@ eta_add_plugin(
         source/plugin_settings.c
         source/plugin_ui.c
         source/downloader.c
+        source/progress_file.c
     INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${CMAKE_CURRENT_BINARY_DIR}/generated"

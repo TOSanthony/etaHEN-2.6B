@@ -52,6 +52,7 @@ static eta_status add_action(eta_ui_document *doc, const char *id, const char *k
 
 static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
                             const plugin_list *list, const char *status_text) {
+    (void)status_text; /* progress is shown by the ShellUI progress panel */
     eta_ui_node_desc_v1 node = make_node(ETA_UI_NODE_PAGE, "main", NULL, "Mises a jour des plugins");
     eta_status st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
@@ -60,18 +61,6 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
     snprintf(node.description, sizeof(node.description), "%s",
              "Telecharge les plugins depuis les releases GitHub " UPDATE_REPO
              ". La liste est lue dans la release : un nouveau plugin y apparait tout seul.");
-    st = eta_ui_document_add_node(doc, &node);
-    if (st != ETA_OK) return st;
-
-    /* Live status line (download progress). Edits are reverted by the plugin. */
-    node = make_node(ETA_UI_NODE_INPUT, "status", "main", "Statut");
-    node.value_type = ETA_UI_VALUE_STRING;
-    /* No DISABLED flag: ShellUI refuses to render a page with such a node. */
-    node.binding = ETA_UI_BINDING_EVENT;
-    node.min_length = 0;
-    node.max_length = 96;
-    snprintf(node.binding_key, sizeof(node.binding_key), "status_edited");
-    snprintf(node.value, sizeof(node.value), "%s", status_text && status_text[0] ? status_text : "Pret");
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 
@@ -156,7 +145,6 @@ eta_status plugin_ui_decode_action(eta_ui_handle handle, const eta_ui_event_v1 *
         out->channel = strcmp(event->value, "latest") == 0;
         return ETA_OK;
     }
-    if (strcmp(event->node_id, "status") == 0) { out->kind = PLUGIN_UI_ACTION_STATUS_EDIT; return ETA_OK; }
     if (strcmp(event->node_id, "install_all") == 0) { out->kind = PLUGIN_UI_ACTION_INSTALL_ALL; return ETA_OK; }
     if (strcmp(event->node_id, "restore") == 0) { out->kind = PLUGIN_UI_ACTION_RESTORE; return ETA_OK; }
     if (strcmp(event->node_id, "refresh") == 0) { out->kind = PLUGIN_UI_ACTION_REFRESH; return ETA_OK; }
