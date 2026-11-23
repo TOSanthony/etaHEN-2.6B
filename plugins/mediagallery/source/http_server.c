@@ -908,6 +908,7 @@ static void http_handle_connection(http_service *service, int fd) {
         return;
     }
 
+    http_log("%s %s", request.method, request.target);
     http_dispatch(&request);
 }
 
@@ -974,9 +975,24 @@ static void http_spawn_connection(http_service *service, int client_fd) {
     pthread_detach(thread);
 }
 
+static void http_log(const char *format, ...) {
+    FILE *log = fopen(PLUGIN_LOG_PATH, "a");
+    if (!log) return;
+    va_list args;
+    va_start(args, format);
+    fprintf(log, "[" PLUGIN_ID "] http: ");
+    vfprintf(log, format, args);
+    fprintf(log, "\n");
+    va_end(args);
+    fclose(log);
+}
+
 static int http_listen(uint16_t port, int local_only) {
     const int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd < 0) return -1;
+    if (fd < 0) {
+        http_log("socket() failed: %s", strerror(errno));
+        return -1;
+    }
 
     int reuse = 1;
     (void)setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
@@ -988,11 +1004,17 @@ static int http_listen(uint16_t port, int local_only) {
     address.sin_addr.s_addr =
         local_only ? htonl(INADDR_LOOPBACK) : htonl(INADDR_ANY);
 
-    if (bind(fd, (struct sockaddr *)&address, sizeof(address)) != 0 ||
-        listen(fd, 8) != 0) {
+    if (bind(fd, (struct sockaddr *)&address, sizeof(address)) != 0) {
+        http_log("bind(%u) failed: %s", (unsigned)port, strerror(errno));
         close(fd);
         return -1;
     }
+    if (listen(fd, 8) != 0) {
+        http_log("listen(%u) failed: %s", (unsigned)port, strerror(errno));
+        close(fd);
+        return -1;
+    }
+    http_log("listening on %s:%u", local_only ? "127.0.0.1" : "0.0.0.0", (unsigned)port);
     return fd;
 }
 
@@ -1019,7 +1041,10 @@ int http_server_serve(http_service *service) {
         if (poll(&descriptor, 1, HTTP_ACCEPT_POLL_MS) <= 0) continue;
 
         const int client_fd = accept(listen_fd, NULL, NULL);
-        if (client_fd < 0) continue;
+        if (client_fd < 0) {
+            http_log("accept() failed: %s", strerror(errno));
+            continue;
+        }
 
         configure_client_socket(client_fd);
         http_spawn_connection(service, client_fd);
