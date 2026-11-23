@@ -18,6 +18,8 @@
 #include <ps5/kernel.h>
 
 #include <signal.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <sys/syscall.h>
@@ -188,6 +190,28 @@ static eta_status start_plugin(plugin_app *app) {
     app->last_scan_ok = media_store_rescan(&app->store) == 0;
     log_message(app, "[%s] indexed %s (privileged=%d)\n", PLUGIN_ID,
                 app->last_scan_ok ? "ok" : "failed", elevated);
+
+    /* Leave the plugin sandbox the way the DPI pkg-server does: root ids, the
+     * real root/jail directory and full caps. A sandboxed process can bind a
+     * port (listen succeeds) yet never receive LAN connections. */
+    {
+        const pid_t me = getpid();
+        int rc = 0;
+        rc |= kernel_set_ucred_uid(me, 0);
+        rc |= kernel_set_ucred_ruid(me, 0);
+        rc |= kernel_set_ucred_svuid(me, 0);
+        rc |= kernel_set_ucred_rgid(me, 0);
+        rc |= kernel_set_ucred_svgid(me, 0);
+        const intptr_t rootvnode = kernel_get_root_vnode();
+        if (rootvnode) {
+            rc |= kernel_set_proc_rootdir(me, rootvnode);
+            rc |= kernel_set_proc_jaildir(me, rootvnode);
+        }
+        uint8_t caps[16];
+        memset(caps, 0xff, sizeof(caps));
+        rc |= kernel_set_ucred_caps(me, caps);
+        log_message(app, "[%s] sandbox escape %s\n", PLUGIN_ID, rc == 0 ? "ok" : "partial/failed");
+    }
 
     if (!http_service_init(&app->http, &app->store, app->settings.port,
                            app->settings.local_only)) {
