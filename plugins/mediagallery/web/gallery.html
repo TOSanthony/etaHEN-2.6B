@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>etaHEN Media Gallery</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0e1118;color:#e8ecf4;font:15px system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;background:#151a24;border-bottom:1px solid #263041}
+h1{font-size:17px;margin:0 8px 0 0}
+select,button{background:#1f2735;color:#e8ecf4;border:1px solid #33415a;border-radius:6px;padding:6px 10px;font:inherit}
+button:hover{background:#2b3750;cursor:pointer}
+#count{margin-left:auto;color:#8fa0bf}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:14px}
+.card{position:relative;background:#151a24;border-radius:8px;overflow:hidden;cursor:pointer;aspect-ratio:16/9}
+.card img,.card video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
+.card .tag{position:absolute;left:6px;bottom:6px;background:#000b;padding:2px 6px;border-radius:4px;font-size:12px}
+.card .play{position:absolute;right:6px;top:6px;background:#000b;padding:2px 6px;border-radius:4px;font-size:12px}
+#empty{padding:40px;text-align:center;color:#8fa0bf}
+#more{display:block;margin:6px auto 30px}
+#viewer{position:fixed;inset:0;background:#000e;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10}
+#viewer.on{display:flex}
+#viewer img,#viewer video{max-width:96vw;max-height:84vh}
+#viewer .bar{margin-top:10px;display:flex;gap:8px;align-items:center}
+#viewer a{color:#8cb4ff}
+</style></head><body>
+<header><h1>Media Gallery</h1>
+<select id="type"><option value="">Tout</option><option value="photo">Photos</option><option value="video">Videos</option></select>
+<select id="sort"><option value="date_desc">Plus recent</option><option value="date_asc">Plus ancien</option><option value="name_asc">Nom</option><option value="size_desc">Taille</option></select>
+<select id="game"><option value="">Tous les jeux</option></select>
+<button id="rescan">Re-scanner</button><span id="count"></span></header>
+<div id="grid"></div><div id="empty" hidden>Aucun media trouve.</div>
+<button id="more" hidden>Charger plus</button>
+<div id="viewer"><div id="vbox"></div><div class="bar"><a id="vdl" download>Telecharger</a><button id="vprev">&lt;</button><button id="vnext">&gt;</button><button id="vclose">Fermer</button></div></div>
+<script>
+const $=id=>document.getElementById(id),LIM=60;let items=[],total=0,cur=-1,games=new Set();
+function fmt(t){return t?new Date(t*1000).toLocaleString():""}
+async function load(reset){
+  if(reset){items=[];$("grid").innerHTML=""}
+  const q=new URLSearchParams({limit:LIM,offset:items.length,sort:$("sort").value});
+  if($("type").value)q.set("type",$("type").value);if($("game").value)q.set("game",$("game").value);
+  let r;try{r=await(await fetch("/api/v1/media?"+q)).json()}catch(e){$("count").textContent="Erreur API";return}
+  total=r.total;const start=items.length;items=items.concat(r.items);
+  r.items.forEach((m,i)=>{games.add(m.game_id)});fillGames();
+  r.items.forEach((m,i)=>$("grid").appendChild(card(m,start+i)));
+  $("count").textContent=items.length+" / "+total;
+  $("empty").hidden=total>0;$("more").hidden=items.length>=total;
+}
+function fillGames(){const s=$("game"),v=s.value;if(s.options.length-1===games.size)return;
+  s.innerHTML='<option value="">Tous les jeux</option>';[...games].sort().forEach(g=>{if(g){const o=document.createElement("option");o.value=o.textContent=g;s.appendChild(o)}});s.value=v}
+function card(m,i){const d=document.createElement("div");d.className="card";
+  if(m.type==="photo"){const im=document.createElement("img");im.loading="lazy";im.src=m.thumb_url;d.appendChild(im)}
+  else{const v=document.createElement("video");v.preload="metadata";v.muted=true;v.src=m.file_url+"#t=0.5";d.appendChild(v);
+    const p=document.createElement("span");p.className="play";p.textContent="▶ "+Math.round(m.duration_ms/1000)+"s";d.appendChild(p)}
+  const t=document.createElement("span");t.className="tag";t.textContent=m.game_id||m.name;d.appendChild(t);
+  d.onclick=()=>show(i);return d}
+function show(i){if(i<0||i>=items.length)return;cur=i;const m=items[i];const b=$("vbox");b.innerHTML="";
+  let e;if(m.type==="photo"){e=document.createElement("img");e.src=m.file_url}
+  else{e=document.createElement("video");e.src=m.file_url;e.controls=true;e.autoplay=true}
+  b.appendChild(e);$("vdl").href=m.file_url;$("vdl").download=m.name;$("viewer").classList.add("on")}
+function hide(){$("vbox").innerHTML="";$("viewer").classList.remove("on")}
+$("vclose").onclick=hide;$("vprev").onclick=()=>show(cur-1);$("vnext").onclick=()=>show(cur+1);
+document.onkeydown=e=>{if(!$("viewer").classList.contains("on"))return;if(e.key==="Escape")hide();if(e.key==="ArrowLeft")show(cur-1);if(e.key==="ArrowRight")show(cur+1)};
+["type","sort","game"].forEach(k=>$(k).onchange=()=>load(true));
+$("more").onclick=()=>load(false);
+$("rescan").onclick=async()=>{$("count").textContent="Scan...";try{await fetch("/api/v1/rescan",{method:"POST"})}catch(e){}load(true)};
+load(true);
+</script></body></html>

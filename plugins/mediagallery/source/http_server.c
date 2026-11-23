@@ -1,4 +1,5 @@
 #include "http_server.h"
+#include "gallery_page.h"
 
 #include <arpa/inet.h>
 #include <ctype.h>
@@ -828,20 +829,8 @@ static void handle_rescan(const http_request *request) {
 }
 
 static void handle_root(const http_request *request) {
-    static const char PAGE[] =
-        "etaHEN media gallery\n"
-        "\n"
-        "This port serves a read-only JSON API over the console capture "
-        "library.\n"
-        "The browsing interface is implemented by a separate client.\n"
-        "\n"
-        "  GET  /api/v1/health\n"
-        "  GET  /api/v1/media?type=photo|video&game=&limit=&offset=&sort=\n"
-        "  GET  /api/v1/thumb/{id}\n"
-        "  GET  /api/v1/file/{id}          (supports Range)\n"
-        "  POST /api/v1/rescan\n";
-    send_body(request->fd, 200, "OK", "text/plain; charset=utf-8", PAGE,
-              sizeof(PAGE) - 1);
+    send_body(request->fd, 200, "OK", "text/html; charset=utf-8", GALLERY_PAGE,
+              sizeof(GALLERY_PAGE) - 1);
 }
 
 /* ── Connection handling ─────────────────────────────────────────────────── */
@@ -886,7 +875,8 @@ static void http_dispatch(http_request *request) {
             handle_file(request, id);
             return;
         }
-        if (strcmp(request->target, "/") == 0) {
+        if (strcmp(request->target, "/") == 0 ||
+            strcmp(request->target, "/index.html") == 0) {
             handle_root(request);
             return;
         }

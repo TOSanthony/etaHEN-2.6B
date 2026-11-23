@@ -56,13 +56,24 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
     eta_status st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 
-    /* Read-only status text (a label cannot be edited). The ShellUI progress
-     * panel shows the live download progress; this shows the last result. */
-    node = make_node(ETA_UI_NODE_LABEL, "status", "main", "Statut");
-    snprintf(node.description, sizeof(node.description), "%s",
-             status_text && status_text[0] ? status_text : "Pret - releases GitHub " UPDATE_REPO);
-    st = eta_ui_document_add_node(doc, &node);
-    if (st != ETA_OK) return st;
+    /* Status line shown on the right, not editable: a LIST with one item
+     * (a text INPUT would open the keyboard; a DISABLED node breaks the page).
+     * Selecting the item does nothing (the event is ignored). */
+    {
+        const char *text = status_text && status_text[0] ? status_text : "Pret";
+        node = make_node(ETA_UI_NODE_LIST, "status", "main", "Statut");
+        node.value_type = ETA_UI_VALUE_STRING;
+        node.binding = ETA_UI_BINDING_EVENT;
+        snprintf(node.binding_key, sizeof(node.binding_key), "status_selected");
+        snprintf(node.value, sizeof(node.value), "%s", text);
+        st = eta_ui_document_add_node(doc, &node);
+        if (st != ETA_OK) return st;
+        node = make_node(ETA_UI_NODE_LIST_ITEM, "status_item", "status", text);
+        node.value_type = ETA_UI_VALUE_STRING;
+        snprintf(node.value, sizeof(node.value), "%s", text);
+        st = eta_ui_document_add_node(doc, &node);
+        if (st != ETA_OK) return st;
+    }
 
     node = make_node(ETA_UI_NODE_LIST, "channel", "main", "Source");
     node.value_type = ETA_UI_VALUE_STRING;

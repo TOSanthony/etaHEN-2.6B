@@ -709,7 +709,9 @@ namespace {
  * ELFs) publishes its state in this small key=value file; the ShellUI shows the
  * same native progress panel as for plugin start/stop.
  *   seq=<increasing id>  state=running|ok|error  title=...  phase=...  percent=0..100 */
-constexpr const char *kExternalFile = "/data/etaHEN/plugin_progress.txt";
+/* SceShellUI sees the data partition as /user/data; plugins write /data/etaHEN. */
+constexpr const char *kExternalFiles[] = {"/user/data/etaHEN/plugin_progress.txt",
+                                          "/data/etaHEN/plugin_progress.txt"};
 
 struct ExternalState {
   uint64_t seq = 0;
@@ -718,7 +720,11 @@ struct ExternalState {
 };
 
 bool read_external_file(ExternalState &out) {
-  FILE *f = std::fopen(kExternalFile, "r");
+  FILE *f = nullptr;
+  for (const char *path : kExternalFiles) {
+    f = std::fopen(path, "r");
+    if (f) break;
+  }
   if (!f) return false;
   char line[300];
   bool any = false;
