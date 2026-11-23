@@ -338,6 +338,18 @@ static void send_headers(int fd, int status, const char *status_text,
     (void)send_all(fd, header, (size_t)written);
 }
 
+static void http_log(const char *format, ...) {
+    FILE *log = fopen(PLUGIN_LOG_PATH, "a");
+    if (!log) return;
+    va_list args;
+    va_start(args, format);
+    fprintf(log, "[" PLUGIN_ID "] http: ");
+    vfprintf(log, format, args);
+    fprintf(log, "\n");
+    va_end(args);
+    fclose(log);
+}
+
 static void send_body(int fd, int status, const char *status_text,
                       const char *content_type, const char *body,
                       size_t length) {
@@ -973,18 +985,6 @@ static void http_spawn_connection(http_service *service, int client_fd) {
     }
 
     pthread_detach(thread);
-}
-
-static void http_log(const char *format, ...) {
-    FILE *log = fopen(PLUGIN_LOG_PATH, "a");
-    if (!log) return;
-    va_list args;
-    va_start(args, format);
-    fprintf(log, "[" PLUGIN_ID "] http: ");
-    vfprintf(log, format, args);
-    fprintf(log, "\n");
-    va_end(args);
-    fclose(log);
 }
 
 static int http_listen(uint16_t port, int local_only) {
