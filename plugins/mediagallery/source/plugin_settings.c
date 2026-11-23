@@ -46,8 +46,8 @@ int plugin_settings_load(const char *path, plugin_settings *settings) {
             apply_bool(line + 8, &settings->enabled);
             continue;
         }
-        if (strncmp(line, "local_only=", 11) == 0) {
-            apply_bool(line + 11, &settings->local_only);
+        if (strncmp(line, "lan_local_only=", 15) == 0) {
+            apply_bool(line + 15, &settings->local_only);
             continue;
         }
         if (strncmp(line, "port=", 5) == 0) {
@@ -77,7 +77,7 @@ int plugin_settings_save(const char *path, const plugin_settings *settings) {
     if (!file) return -1;
 
     int result = fprintf(file,
-                         "enabled=%s\nport=%u\nlocal_only=%s\n",
+                         "enabled=%s\nport=%u\nlan_local_only=%s\n",
                          settings->enabled ? "true" : "false",
                          (unsigned)settings->port,
                          settings->local_only ? "true" : "false") < 0

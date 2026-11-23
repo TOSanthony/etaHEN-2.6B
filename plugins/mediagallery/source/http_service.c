@@ -102,8 +102,12 @@ int http_service_start(http_service *service) {
     pthread_mutex_lock(&service->mutex);
     service->running = 1;
     service->stop_requested = 0;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    (void)pthread_attr_setstacksize(&attr, 512 * 1024);
     const int result =
-        pthread_create(&service->thread, NULL, http_thread_main, service);
+        pthread_create(&service->thread, &attr, http_thread_main, service);
+    pthread_attr_destroy(&attr);
     if (result == 0) {
         service->thread_created = 1;
     } else {

@@ -716,15 +716,17 @@ static void handle_thumb(const http_request *request, const char *id) {
     const size_t length = (size_t)info.st_size;
     send_headers(request->fd, 200, "OK", content_type_for(path), length, NULL);
 
-    char chunk[HTTP_STREAM_CHUNK];
+    char *chunk = malloc(HTTP_STREAM_CHUNK);
+    if (!chunk) { close(fd); return; }
     size_t remaining = length;
     while (remaining > 0) {
-        const size_t wanted = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
+        const size_t wanted = remaining < HTTP_STREAM_CHUNK ? remaining : HTTP_STREAM_CHUNK;
         const ssize_t got = read(fd, chunk, wanted);
         if (got <= 0) break;
         if (!send_all(request->fd, chunk, (size_t)got)) break;
         remaining -= (size_t)got;
     }
+    free(chunk);
     close(fd);
 }
 
@@ -798,16 +800,18 @@ static void handle_file(const http_request *request, const char *id) {
         return;
     }
 
-    char chunk[HTTP_STREAM_CHUNK];
+    char *chunk = malloc(HTTP_STREAM_CHUNK);
+    if (!chunk) { close(fd); return; }
     uint64_t remaining = length;
     while (remaining > 0) {
         const size_t wanted =
-            remaining < sizeof(chunk) ? (size_t)remaining : sizeof(chunk);
+            remaining < HTTP_STREAM_CHUNK ? (size_t)remaining : HTTP_STREAM_CHUNK;
         const ssize_t got = read(fd, chunk, wanted);
         if (got <= 0) break;
         if (!send_all(request->fd, chunk, (size_t)got)) break;
         remaining -= (uint64_t)got;
     }
+    free(chunk);
     close(fd);
 }
 
@@ -975,7 +979,12 @@ static void http_spawn_connection(http_service *service, int client_fd) {
     connection->fd = client_fd;
 
     pthread_t thread;
-    if (pthread_create(&thread, NULL, http_connection_main, connection) != 0) {
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    (void)pthread_attr_setstacksize(&attr, 512 * 1024);
+    const int created = pthread_create(&thread, &attr, http_connection_main, connection);
+    pthread_attr_destroy(&attr);
+    if (created != 0) {
         pthread_mutex_lock(&service->mutex);
         service->active_connections--;
         pthread_mutex_unlock(&service->mutex);
