@@ -421,6 +421,17 @@ main() {
   cp "${BUILD}/updater/bin/UPDT00001.elf" "${BIN}/updater.elf"
   ok "built updater.elf"
 
+  # Phase 2h — PS4 Pro Mode (ps-patch-system + NeoEnabler merged; distributed via the Plugin Updater)
+  log "Phase 2h: PS4 Pro Mode plugin"
+  cmake -S "${ROOT}/plugins/neopro" -B "${BUILD}/neopro" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE="${ROOT}/plugins/neopro/cmake/ps5-toolchain.cmake" \
+    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
+  cmake --build "${BUILD}/neopro" -j"${JOBS}"
+  [[ -f "${BUILD}/neopro/bin/NEOP00001.elf" ]] || die "missing NEOP00001.elf after plugin build"
+  cp "${BUILD}/neopro/bin/NEOP00001.elf" "${BIN}/neopro.elf"
+  ok "built neopro.elf"
+
   # Phase 3 — bootstrapper (embeds daemon/util + kstuff + assets)
   log "Phase 3/5: bootstrapper"
   build_targets bootstrapper bootstrapper_packed

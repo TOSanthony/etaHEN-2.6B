@@ -19,6 +19,7 @@ static const known_plugin kKnown[] = {
     {"NTPS00001", "NTP (heure)"},
     {"DASH00001", "Dashboard"},
     {"MGAL00001", "Media Gallery"},
+    {"NEOP00001", "PS4 Pro Mode"},
 };
 
 const char *plugin_label(const char *id) {

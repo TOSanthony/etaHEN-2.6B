@@ -106,7 +106,7 @@ static const char *result_text(dl_result r) {
 
 /* Built-in list used until the release has been read. */
 static void fallback_list(plugin_list *list) {
-    static const char *const ids[] = {"DPIV00001", "FTPS00001", "NTPS00001", "DASH00001", "MGAL00001"};
+    static const char *const ids[] = {"DPIV00001", "FTPS00001", "NTPS00001", "DASH00001", "MGAL00001", "NEOP00001"};
     memset(list, 0, sizeof(*list));
     for (unsigned i = 0; i < sizeof(ids) / sizeof(ids[0]); ++i)
         snprintf(list->ids[list->count++], DL_ID_LEN, "%s", ids[i]);
