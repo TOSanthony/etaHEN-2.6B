@@ -130,6 +130,52 @@ static void *bridge_thread(void *arg) {
   return NULL;
 }
 
+/* "Apply now": restart SceShellUI right away (the Welcome Hub needs a fresh
+ * shell to load), wait for etaHEN to hook the new one, then inject again. */
+static volatile int g_restart_busy = 0;
+
+static void *restart_now_thread(void *arg) {
+  (void)arg;
+  pid_t pid = find_pid("SceShellUI");
+  if (pid < 0) { notify("Dashboard: ShellUI not found"); g_restart_busy = 0; return NULL; }
+  if (!wait_toolbox_ready(pid, 60)) LOG("apply: etaHEN toolbox not ready for pid %d, continuing\n", (int)pid);
+  notify("Dashboard\nRedemarrage du shell pour le Welcome Hub...");
+  sleep(2);
+  LOG("apply: restarting SceShellUI (pid %d)\n", (int)pid);
+  if (restart_shellui(pid) != 0) { LOG("apply: could not terminate SceShellUI\n"); g_restart_busy = 0; return NULL; }
+  pid_t np = -1;
+  for (int i = 0; i < 90; i++) {
+    sleep(1);
+    np = find_pid("SceShellUI");
+    if (np > 0 && np != pid) break;
+    np = -1;
+  }
+  if (np > 0) {
+    sleep(8);
+    if (!wait_toolbox_ready(np, 120)) LOG("apply: etaHEN did not re-hook the new shell (pid %d)\n", (int)np);
+    int reload = 0; uint64_t gen = 0;
+    int rc = wh_install_once_g(np, access(WH_DUMP_FLAG, F_OK) == 0, &reload, &gen);
+    LOG("apply: re-injected into new SceShellUI pid %d rc=%d\n", (int)np, rc);
+    notify(rc == 0 ? "Dashboard\nWelcome Hub charge" : "Dashboard\nWelcome Hub: echec (rc=%d)", rc);
+  } else {
+    LOG("apply: new SceShellUI not found after 90s\n");
+  }
+  g_restart_busy = 0;
+  return NULL;
+}
+
+int wh_runner_is_started(void) { return g_started; }
+
+int wh_runner_restart_now(int restart_delay_s) {
+  (void)restart_delay_s;
+  if (g_restart_busy) return 0;
+  g_restart_busy = 1;
+  pthread_t t;
+  if (pthread_create(&t, NULL, restart_now_thread, NULL) != 0) { g_restart_busy = 0; return -1; }
+  pthread_detach(t);
+  return 0;
+}
+
 int wh_runner_start(int restart_shell, int restart_delay_s) {
   if (g_started) return 0;
   g_restart_shell = restart_shell;

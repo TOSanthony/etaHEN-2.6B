@@ -39,7 +39,7 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s) {
 
     node = make_node(ETA_UI_NODE_LABEL, "about", "main", "A propos");
     snprintf(node.description, sizeof(node.description), "%s",
-             "Affiche ou masque les tuiles de l'accueil (modifie app.db, sans redemarrage).");
+             "Affiche ou masque les tuiles de l'accueil (modifie app.db). \"Appliquer maintenant\" redemarre aussi le shell pour charger le Welcome Hub.");
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 

@@ -195,6 +195,13 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
     case PLUGIN_UI_ACTION_APPLY_NOW:
         log_message(app, "[%s] manual apply requested\n", PLUGIN_ID);
         apply_tiles(app, 1);
+        if (app->settings.bridge) {
+            /* The Welcome Hub only loads into a freshly started shell. */
+            int rc = wh_runner_is_started()
+                         ? wh_runner_restart_now(app->settings.restart_delay)
+                         : wh_runner_start(1, app->settings.restart_delay); /* inject, then restart */
+            log_message(app, "[%s] shell restart %s\n", PLUGIN_ID, rc == 0 ? "requested" : "failed");
+        }
         return ETA_OK;
     case PLUGIN_UI_ACTION_SET_STORE: app->settings.store = action->value; break;
     case PLUGIN_UI_ACTION_SET_PLUS: app->settings.plus = action->value; break;
