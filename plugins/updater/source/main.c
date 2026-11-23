@@ -217,6 +217,7 @@ static void install_session(plugin_app *app, const char *const *ids, unsigned to
     }
     progress_end(ok == total, text);
     set_status(app, text);
+    rebuild_ui(app); /* refresh the "Statut" line */
     send_notification(app, "Plugin Updater\n%s%s", text, ok ? "\nRedemarre les plugins mis a jour." : "");
 }
 
@@ -361,7 +362,7 @@ int main(void) {
 
     plugin_settings_defaults(&app.settings);
     fallback_list(&app.list);
-    snprintf(app.status, sizeof(app.status), "Pret");
+    snprintf(app.status, sizeof(app.status), "");
     if (plugin_settings_load(PLUGIN_SETTINGS_PATH, &app.settings) != 0) {
         fprintf(stderr, "[%s] failed to read %s; using defaults\n", PLUGIN_ID,
                 PLUGIN_SETTINGS_PATH);

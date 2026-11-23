@@ -52,15 +52,15 @@ static eta_status add_action(eta_ui_document *doc, const char *id, const char *k
 
 static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
                             const plugin_list *list, const char *status_text) {
-    (void)status_text; /* progress is shown by the ShellUI progress panel */
     eta_ui_node_desc_v1 node = make_node(ETA_UI_NODE_PAGE, "main", NULL, "Mises a jour des plugins");
     eta_status st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 
-    node = make_node(ETA_UI_NODE_LABEL, "about", "main", "A propos");
+    /* Read-only status text (a label cannot be edited). The ShellUI progress
+     * panel shows the live download progress; this shows the last result. */
+    node = make_node(ETA_UI_NODE_LABEL, "status", "main", "Statut");
     snprintf(node.description, sizeof(node.description), "%s",
-             "Telecharge les plugins depuis les releases GitHub " UPDATE_REPO
-             ". La liste est lue dans la release : un nouveau plugin y apparait tout seul.");
+             status_text && status_text[0] ? status_text : "Pret - releases GitHub " UPDATE_REPO);
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 
