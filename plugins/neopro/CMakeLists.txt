@@ -49,7 +49,18 @@ add_custom_command(
     DEPENDS "${NEO_DIR}/shim.S" "${NEO_DIR}/shim.ld" "${NEO_DIR}/tools/gen_shim.py"
     COMMENT "Generating the NeoEnabler launch shim"
     VERBATIM)
-add_custom_target(neopro_shim DEPENDS "${SHIM_BUILD}/shim_data.h")
+# 8 GiB budget barrier shim (BeginAppMount2), same toolchain.
+add_custom_command(
+    OUTPUT "${SHIM_BUILD}/step_shim_data.h"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SHIM_BUILD}"
+    COMMAND "${SHIM_CLANG}" --target=x86_64-unknown-none -c "${NEO_DIR}/step_shim.S" -o "${SHIM_BUILD}/step-shim.o"
+    COMMAND "${SHIM_LLD}" -T "${NEO_DIR}/step_shim.ld" --no-relax "${SHIM_BUILD}/step-shim.o" -o "${SHIM_BUILD}/step-shim.out"
+    COMMAND "${SHIM_OBJCOPY}" -O binary -j .shim "${SHIM_BUILD}/step-shim.out" "${SHIM_BUILD}/step-shim.bin"
+    COMMAND "${Python3_EXECUTABLE}" "${NEO_DIR}/tools/gen_step_shim.py" "${SHIM_NM}" "${SHIM_BUILD}"
+    DEPENDS "${NEO_DIR}/step_shim.S" "${NEO_DIR}/step_shim.ld" "${NEO_DIR}/tools/gen_step_shim.py"
+    COMMENT "Generating the NeoEnabler 8 GiB step shim"
+    VERBATIM)
+add_custom_target(neopro_shim DEPENDS "${SHIM_BUILD}/shim_data.h" "${SHIM_BUILD}/step_shim_data.h")
 
 # ---------------------------------------------------------------------------
 # Game patches (NeoEnabler xml/) embedded in the ELF with .incbin.

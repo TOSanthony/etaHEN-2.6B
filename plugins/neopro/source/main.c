@@ -42,7 +42,7 @@ typedef struct plugin_app {
     int                  client_initialized;
     int                  ui_dirty;
     unsigned             refresh_ticks;
-    char                 last_status[PLUGIN_UI_STATUS_MAX];
+    char                 last_status[4 * PLUGIN_UI_STATUS_MAX];
 } plugin_app;
 
 static volatile sig_atomic_t running = 1;
@@ -82,8 +82,18 @@ static void save_settings(plugin_app *app) {
 }
 
 /* The SDK cannot update a LIST in place: the document is rebuilt when something changed. */
+static neo_config make_config(const plugin_settings *s) {
+    neo_config c = {.enabled = s->enabled, .all_games = s->all_games, .force_8gib = s->force_8gib,
+                    .gpu_on = s->gpu_on, .gpu_mhz = s->gpu_mhz, .cpu_on = s->cpu_on, .cpu_mhz = s->cpu_mhz};
+    return c;
+}
+
 static void refresh_state(plugin_app *app) {
-    neo_core_status(app->ui_state.status, sizeof(app->ui_state.status));
+    neo_core_text(-1, app->ui_state.status, sizeof(app->ui_state.status));
+    neo_core_text(0, app->ui_state.memory_text, sizeof(app->ui_state.memory_text));
+    neo_core_text(1, app->ui_state.gpu_text, sizeof(app->ui_state.gpu_text));
+    neo_core_text(2, app->ui_state.cpu_text, sizeof(app->ui_state.cpu_text));
+    neo_core_limits(&app->ui_state.limits);
     app->ui_state.game_count = neo_games_list(app->ui_state.games, NEO_MAX_GAMES);
 }
 
@@ -139,7 +149,10 @@ static eta_status start_plugin(plugin_app *app) {
         log_message(app, "[%s] sandbox escape %s\n", PLUGIN_ID, rc == 0 ? "ok" : "partial/failed");
     }
 
-    if (neo_core_start(app->settings.enabled, app->settings.all_games) != 0) return ETA_E_IO;
+    {
+        neo_config cfg = make_config(&app->settings);
+        if (neo_core_start(&cfg) != 0) return ETA_E_IO;
+    }
 
     plugin_ui_state_init(&app->ui_state, &app->settings);
     refresh_state(app);
@@ -180,8 +193,32 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
         snprintf(app->ui_state.message, sizeof(app->ui_state.message), "%s", msg);
         app->ui_dirty = 1;
         return ETA_OK;
+    case PLUGIN_UI_ACTION_SET_FORCE_8GIB:
+        app->settings.force_8gib = action->enabled;
+        break;
+    case PLUGIN_UI_ACTION_SET_GPU:
+        app->settings.gpu_on = action->enabled;
+        break;
+    case PLUGIN_UI_ACTION_SET_CPU:
+        app->settings.cpu_on = action->enabled;
+        break;
+    case PLUGIN_UI_ACTION_SET_GPU_MHZ:
+    case PLUGIN_UI_ACTION_SET_CPU_MHZ: {
+        neo_limits l;
+        neo_core_limits(&l);
+        const int gpu = action->kind == PLUGIN_UI_ACTION_SET_GPU_MHZ;
+        const unsigned lo = gpu ? l.gpu_min : l.cpu_min, hi = gpu ? l.gpu_max : l.cpu_max;
+        if (action->mhz < lo || action->mhz > hi || action->mhz % 50 != 0) {
+            snprintf(app->ui_state.message, sizeof(app->ui_state.message), "Frequence refusee : %u a %u MHz par pas de 50", lo, hi);
+            app->ui_dirty = 1;
+            return ETA_E_INVALID_ARGUMENT;
+        }
+        if (gpu) app->settings.gpu_mhz = action->mhz;
+        else app->settings.cpu_mhz = action->mhz;
+        break;
+    }
     case PLUGIN_UI_ACTION_SET_GAME:
-        (void)neo_game_set(action->tid, action->enabled, msg, sizeof(msg));
+        (void)neo_game_set(action->tid, action->game_mode, msg, sizeof(msg));
         log_message(app, "[%s] %s\n", PLUGIN_ID, msg);
         snprintf(app->ui_state.message, sizeof(app->ui_state.message), "%s", msg);
         app->ui_dirty = 1;
@@ -191,7 +228,10 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
         return ETA_E_NOT_FOUND;
     }
     save_settings(app);
-    neo_core_set(app->settings.enabled, app->settings.all_games);
+    {
+        neo_config cfg = make_config(&app->settings);
+        neo_core_set(&cfg);
+    }
     app->ui_dirty = 1;
     return ETA_OK;
 }
@@ -201,8 +241,8 @@ static int run_event_loop(plugin_app *app) {
         /* Refresh the status line about every 2 s; rebuild only when the text changed. */
         if (++app->refresh_ticks >= 20) {
             app->refresh_ticks = 0;
-            char status[PLUGIN_UI_STATUS_MAX];
-            neo_core_status(status, sizeof(status));
+            char status[4 * PLUGIN_UI_STATUS_MAX];
+            neo_core_summary(status, sizeof(status));
             if (strcmp(status, app->last_status) != 0) {
                 snprintf(app->last_status, sizeof(app->last_status), "%s", status);
                 app->ui_dirty = 1;

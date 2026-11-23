@@ -63,32 +63,36 @@ static char *ps_get(const char *url, size_t *len);
 static char *ps_get(const char *url, size_t *len) { (void)url; (void)len; return NULL; }
 #include "games.h"
 #include "shellcore_hook.h"
+#include "attr_detect.h"
+
+#define BM_LOG(...) log_line(__VA_ARGS__)
+#include "../third_party/pspatch/shared/app_info.h"
+#include "gpu_control.h"
+#include "cpu_control.h"
+#include "memory_control.h"
 
 int pspatch_server_start(void);
 int pspatch_attach(pid_t shellcore_pid);
 
-static struct {
-    volatile int enabled, all_games, stop, running;
-    pthread_mutex_t lock;
-    char status[160];
-    pid_t shell_pid;
-    int hook_ok;
-    pthread_t thread;
-} core = {.lock = PTHREAD_MUTEX_INITIALIZER};
-
-static void set_status(const char *fmt, ...) {
-    va_list ap;
-    pthread_mutex_lock(&core.lock);
-    va_start(ap, fmt);
-    vsnprintf(core.status, sizeof(core.status), fmt, ap);
-    va_end(ap);
-    pthread_mutex_unlock(&core.lock);
+static int force_neo, force_8gib;
+static uint32_t fw_raw_version(void) {
+    uint32_t v = 0; size_t n = sizeof(v);
+    sysctlbyname("machdep.upd_version", &v, &n, NULL, 0);
+    return v;
 }
+static void notify(const char *msg) { log_line("%s", msg); }
+static int settings_save(void) { return 0; } /* the plugin saves its own settings file */
+static void log_state(void);
+static int memory_supported(void) { uint32_t fw = fw_raw_version(); return mb_find_layout(fw) != NULL || mbd_find_layout(fw) != NULL; }
+static int memory_available(void) { mb_snapshot m; return memory_supported() && !memory_check(&m); }
+static int gpu_available(void) { unsigned mhz; return gpu_backend_supported() && !gpu_backend_read(&mhz); }
+static int cpu_available(void) { return cpu_backend_supported() && cpu_backend_responds(); }
+#include "neo_manager.inc"
 
-void neo_core_status(char *out, size_t cap) {
-    pthread_mutex_lock(&core.lock);
-    snprintf(out, cap, "%s", core.status[0] ? core.status : "Demarrage");
-    pthread_mutex_unlock(&core.lock);
+static void log_state(void) {
+    shell_t s;
+    int st = hook_state(&s);
+    log_line("state: hook %s, 8GB Mode: %s, GPU: %s, CPU: %s", state_text(st), memory_message, gpu.message, cpu.message);
 }
 
 /* ---- game patches -------------------------------------------------------------------------------------------- */
@@ -117,6 +121,8 @@ int neo_core_sync(char *msg, size_t cap) {
     return r.errors ? -1 : 0;
 }
 
+static volatile int mem_ok_cached; /* 8 GiB usable, refreshed by the worker (kernel access stays on its thread) */
+
 int neo_games_list(neo_game_info *out, int cap) {
     int n = 0, count = 0;
     game_t *g = games_scan(&count);
@@ -127,19 +133,22 @@ int neo_games_list(neo_game_info *out, int cap) {
         neo_game_info *o = &out[n++];
         snprintf(o->tid, sizeof(o->tid), "%s", g[i].tid);
         snprintf(o->name, sizeof(o->name), "%s", g[i].name);
-        o->pro_on = 0;
-        for (int k = 0; k < g[i].count; k++)
-            if (g[i].patches[k].needs_pro && !g[i].patches[k].needs_8gib &&
-                gp_setting(settings, sl, g[i].patches[k].hash) == 1)
-                o->pro_on = 1;
+        o->pro_on = o->on8 = o->has8 = 0;
+        for (int k = 0; k < g[i].count; k++) {
+            const gp_patch *p = &g[i].patches[k];
+            int on = gp_setting(settings, sl, p->hash) == 1;
+            if (p->needs_pro && !p->needs_8gib && on) o->pro_on = 1;
+            if (p->needs_8gib && mem_ok_cached) o->has8 = 1;
+            if (p->needs_8gib && on) o->on8 = 1;
+        }
     }
     free(settings);
     games_free(g, count);
     return n;
 }
 
-/* Turns the PS4 Pro patches of a game on (the first resolution entry that needs no 8 GiB) or off (all of them). */
-int neo_game_set(const char *tid, int on, char *msg, size_t cap) {
+/* mode 0: off, 1: PS4 Pro (first resolution entry without 8 GiB), 2: PS4 Pro with 8 GiB. */
+int neo_game_set(const char *tid, int mode, char *msg, size_t cap) {
     char name[128], ver[16];
     if (!game_tid(tid) || game_info(tid, name, sizeof(name), ver, sizeof(ver))) {
         snprintf(msg, cap, "Jeu inconnu");
@@ -149,21 +158,22 @@ int neo_game_set(const char *tid, int on, char *msg, size_t cap) {
     gp_patch *p = game_patches(tid, ver, &n);
     if (!p || n <= 0) { free(p); snprintf(msg, cap, "Aucun correctif pour %s", tid); return -1; }
     int rc = -1;
-    if (on) {
+    if (mode) {
+        const int want8 = mode == 2;
         int pick = -1;
         for (int i = 0; i < n && pick < 0; i++)
-            if (p[i].resolution && p[i].needs_pro && !p[i].needs_8gib && gp_main_elf(&p[i])) pick = i;
+            if (p[i].resolution && p[i].needs_pro && !p[i].needs_8gib == !want8 && gp_main_elf(&p[i])) pick = i;
         for (int i = 0; i < n && pick < 0; i++)
-            if (p[i].needs_pro && !p[i].needs_8gib) pick = i;
-        if (pick < 0) snprintf(msg, cap, "Pas de correctif Pro compatible pour %s", tid);
-        else rc = game_set_patch(tid, p[pick].hash, 1, 0, msg, cap);
+            if (p[i].needs_pro && !p[i].needs_8gib == !want8) pick = i;
+        if (pick < 0) snprintf(msg, cap, "Pas de correctif %s pour %s", want8 ? "8 Go" : "Pro", tid);
+        else rc = game_set_patch(tid, p[pick].hash, 1, mem_ok_cached, msg, cap);
     } else {
         size_t sl;
         char *settings = settings_read(&sl);
         rc = 0;
         for (int i = 0; i < n; i++) {
             if (!(p[i].needs_pro || p[i].needs_8gib) || gp_setting(settings, sl, p[i].hash) != 1) continue;
-            if (game_set_patch(tid, p[i].hash, 0, 0, msg, cap)) rc = -1;
+            if (game_set_patch(tid, p[i].hash, 0, mem_ok_cached, msg, cap)) rc = -1;
         }
         if (!rc) snprintf(msg, cap, "%s: mode Pro desactive", tid);
         free(settings);
@@ -174,7 +184,33 @@ int neo_game_set(const char *tid, int on, char *msg, size_t cap) {
 
 /* ---- worker -------------------------------------------------------------------------------------------------- */
 
-#define ANSWER_WAIT_CYCLES UINT64_C(3000000000) /* about a second of TSC */
+static struct {
+    neo_config cfg;           /* requested by the UI thread */
+    volatile int dirty, stop, running;
+    pthread_mutex_t lock;
+    char status[200], detail[3][200];
+    pthread_t thread;
+} core = {.lock = PTHREAD_MUTEX_INITIALIZER};
+
+void neo_core_summary(char *out, size_t cap) {
+    pthread_mutex_lock(&core.lock);
+    snprintf(out, cap, "%s|%s|%s|%s", core.status, core.detail[0], core.detail[1], core.detail[2]);
+    pthread_mutex_unlock(&core.lock);
+}
+
+void neo_core_text(int which, char *out, size_t cap) {
+    pthread_mutex_lock(&core.lock);
+    snprintf(out, cap, "%s", which < 0 ? core.status : core.detail[which % 3]);
+    pthread_mutex_unlock(&core.lock);
+}
+
+void neo_core_limits(neo_limits *l) {
+    l->gpu_min = GPU_MIN_MHZ;
+    l->gpu_max = gpu_model_max;
+    l->cpu_min = CPU_MIN_MHZ;
+    l->cpu_max = CPU_MAX_MHZ;
+    l->memory_supported = memory_supported();
+}
 
 static void toolbox_wait(void) {
     /* etaHEN creates this marker once its own ShellCore/ShellUI setup is done. */
@@ -184,109 +220,186 @@ static void toolbox_wait(void) {
     }
 }
 
-/* One iteration: keeps the hook installed on the current ShellCore, answers pending launch questions. */
+static void publish(void) {
+    shell_t s;
+    int st = hook_state(&s);
+    pthread_mutex_lock(&core.lock);
+    if (!core.cfg.enabled) snprintf(core.status, sizeof core.status, "Desactive");
+    else if (st == HOOK_ON) snprintf(core.status, sizeof core.status, "Actif : %s",
+                                     force_neo ? "tous les jeux PS4 en mode Pro" : "jeux avec correctif active");
+    else snprintf(core.status, sizeof core.status, "Hook ShellCore : %s", state_text(st));
+    snprintf(core.detail[0], sizeof core.detail[0], "%.190s", memory_supported() ? memory_message : "Mode 8 Go non supporte sur ce firmware");
+    snprintf(core.detail[1], sizeof core.detail[1], "%.190s", gpu.message);
+    snprintf(core.detail[2], sizeof core.detail[2], "%.190s", cpu.message);
+    pthread_mutex_unlock(&core.lock);
+}
+
+/* Applies what the UI asked for. Runs on the worker thread: kernel pipes are shared state. */
+static void apply_config(int first) {
+    neo_config c;
+    pthread_mutex_lock(&core.lock);
+    c = core.cfg;
+    pthread_mutex_unlock(&core.lock);
+    static neo_config applied;
+    static int have;
+    if (have && !memcmp(&applied, &c, sizeof c)) return;
+
+    int all_changed = !have || applied.all_games != c.all_games;
+    force_neo = c.all_games;
+    if (!have || applied.force_8gib != c.force_8gib) {
+        force_8gib = c.force_8gib && memory_supported();
+        if (!first) {
+            if (c.force_8gib && !memory_available()) { force_8gib = 0; log_line("8 Go force ignore : mode 8 Go indisponible"); }
+            if (memory_available()) memory_request(force_8gib);
+        }
+    }
+    if (!have || applied.gpu_on != c.gpu_on || applied.gpu_mhz != c.gpu_mhz) {
+        if (first) gpu_configure(c.gpu_on, c.gpu_mhz);
+        else {
+            int rc = gpu_request(c.gpu_on, c.gpu_mhz, gpu_game_pid());
+            log_line("GPU: %s (rc %d)", gpu.message, rc);
+        }
+    }
+    if (!have || applied.cpu_on != c.cpu_on || applied.cpu_mhz != c.cpu_mhz) {
+        if (first) cpu_configure(c.cpu_on, c.cpu_mhz);
+        else {
+            int rc = cpu_request(c.cpu_on, c.cpu_mhz, gpu_game_pid());
+            log_line("CPU: %s (rc %d)", cpu.message, rc);
+        }
+    }
+    if (have && applied.enabled != c.enabled) {
+        shell_t s;
+        int st = hook_state(&s);
+        if (!c.enabled && st == HOOK_ON) {
+            launch_attach(0);
+            log_line("NEO hook removal rc=%d", hook_set(0));
+            live_ok = 0;
+        }
+    }
+    if (all_changed && c.enabled) launch_attach(1);
+    applied = c;
+    have = 1;
+}
+
 static void *worker(void *arg) {
     (void)arg;
     pid_t last_pid = -1;
-    uint32_t answered = 0;
-    int last_enabled = -1, last_all = -1, ticks = 0, hook_state_now = -99, logged_st = -99, no_ps = 0, attach_tries = 0;
     char msg[256];
 
     toolbox_wait();
     neo_core_sync(msg, sizeof(msg));
     if (pspatch_server_start() == 0) log_line("patch server started");
     else log_line("patch server failed to start");
-    core.running = 1;
 
+    console_detect_model();
+    apply_config(1);
+
+    /* wait for ShellCore and hook it with ps-patch-system, then install the NeoEnabler shim */
+    for (int i = 0; i < 60 && !core.stop; i++) {
+        pid_t pid = find_proc("SceShellCore");
+        if (pid > 0) {
+            log_line("SceShellCore pid %d: installing the ps-patch-system hook", pid);
+            sleep(3);
+            pspatch_attach(pid);
+            last_pid = pid;
+            break;
+        }
+        sleep(1);
+    }
+    core.running = 1;
+    if (core.cfg.enabled) {
+        shell_t s;
+        for (int i = 0; i < 20 && hook_state(&s) != HOOK_OFF && !core.stop; i++) sleep(1);
+        log_line("NEO hook install rc=%d", hook_set(1));
+    }
+    tsc_hz = tsc_rate();
+    launch_attach(1);
+    log_line("launch: questions %s (TSC %llu Hz, wait %d s)", live_ok ? "enabled" : "unavailable, hook not installed",
+             (unsigned long long)tsc_hz, LAUNCH_WAIT_S);
+    bm_reuse_allowed = previous_run_gone();
+    memory_init(fw_raw_version(), tsc_hz * 3);
+    record_run();
+    memory_wants8 = memory_launch_wants;
+    memory_refused8 = memory_launch_refused;
+    if (bm.attached && !memory_data_blocked && bm_field(MS_ENABLED, 1)) {
+        memory_data_blocked = 1;
+        log_line("No-HV mount hook enable failed; reboot required");
+    }
+    apply_config(0);
+    drop_8gib_request();
+    if (force_8gib) memory_request(1);
+    int memory_previous_result = memory_poll();
+    log_line("8GB Mode: %s", memory_message);
+    mem_ok_cached = memory_available();
+    gpu_tick();
+    cpu_tick();
+    patches_drop_8gib(NULL);
+    log_state();
+    publish();
+
+    time_t last_slow = time(NULL);
     while (!core.stop) {
-        const int enabled = core.enabled, all = core.all_games;
-        if (ticks++ % 500 == 0) { /* about every second */
+        memory_data_tick();
+        launch_poll();
+        time_t now = time(NULL);
+        if (now < last_slow || now - last_slow >= 2) {
+            last_slow = now;
             pid_t pid = find_proc("SceShellCore");
             if (pid > 0 && pid != last_pid) {
-                log_line("SceShellCore pid %d: installing the ps-patch-system hook", pid);
+                log_line("SceShellCore pid %d (restart): installing the ps-patch-system hook", pid);
                 sleep(3);
                 pspatch_attach(pid);
                 last_pid = pid;
-                last_enabled = -1; /* the shim must be installed again */
-                attach_tries = 0;
-                no_ps = 0;
-                logged_st = -99;
+                live_ok = 0;
             }
-            if (last_pid > 0 && (enabled != last_enabled || all != last_all || hook_state_now != HOOK_ON)) {
-                shell_t s;
-                int st = hook_state(&s);
-                if (enabled && st == HOOK_OFF) {
-                    int rc = hook_set(1);
-                    log_line("NEO hook install rc=%d", rc);
-                    st = hook_state(&s);
-                } else if (!enabled && st == HOOK_ON) {
-                    int rc = hook_set(0);
-                    log_line("NEO hook removal rc=%d", rc);
-                    st = hook_state(&s);
-                }
-                if (st == HOOK_ON) {
-                    /* all games: the shim forces Pro without asking; otherwise it asks us for every PS4 title */
-                    int rc = shim_configure(&s, all, all ? 0 : ANSWER_WAIT_CYCLES);
-                    if (rc) log_line("shim configure failed");
-                }
-                last_enabled = enabled;
-                last_all = all;
-                hook_state_now = st;
-                if (st == HOOK_NO_PATCH_SYSTEM && enabled) {
-                    /* ShellCore was not ready the first time: hook it again, a few times at most */
-                    if (++no_ps >= 8 && attach_tries < 4) {
-                        no_ps = 0;
-                        attach_tries++;
-                        log_line("ps-patch-system hook not found, trying again (%d)", attach_tries);
-                        pspatch_attach(last_pid);
-                    }
-                } else {
-                    no_ps = 0;
-                }
-                if (st == HOOK_ON)
-                    set_status("Actif : %s", all ? "tous les jeux PS4 en mode Pro" : "jeux avec correctif active");
-                else if (!enabled && st == HOOK_OFF) set_status("Desactive");
-                else set_status("Hook ShellCore : %s", state_text(st));
-                core.hook_ok = st == HOOK_ON;
-                if (st != logged_st) {
-                    logged_st = st;
-                    log_line("state: %s (fw %x)", state_text(st), (unsigned)(kernel_get_fw_version() >> 16));
-                }
+            apply_config(0);
+            launch_attach(-1);
+            if (core.cfg.enabled) hook_retry();
+            launch_tick();
+            settings_watch();
+            gpu_tick();
+            cpu_tick();
+            int memory_result = memory_poll();
+            if (memory_result != memory_previous_result) {
+                log_line("8GB Mode: %s (result %d)", memory_message, memory_result);
+                drop_8gib_request();
+                log_state();
+                patches_drop_8gib(NULL);
             }
+            memory_previous_result = memory_result;
+            mem_ok_cached = memory_available();
+            publish();
         }
-        if (core.hook_ok && enabled && !all) {
-            shell_t s;
-            uint32_t seq; char tid[10]; uint64_t info;
-            if (hook_state(&s) == HOOK_ON && !shim_question(&s, &seq, tid, &info) && seq != answered && seq) {
-                int needs = game_needs(tid);
-                unsigned char ans = (needs & (NEEDS_PRO | NEEDS_8GIB)) ? 1 : 0;
-                int rc = shim_answer(&s, seq, ans, 0);
-                answered = seq;
-                log_line("launch %s: Pro %s (rc %d)", tid, ans ? "oui" : "non", rc);
-            }
-        }
-        usleep(2000);
+        usleep(pending.active ? 2000 : 20000);
+    }
+
+    /* Stop: never ask again, give the clocks and the budget back. */
+    launch_attach(0);
+    for (int i = 0; i < 30; i++) {
+        memory_data_tick();
+        if (!memory_shutdown() && !clocks_restore()) break;
+        sleep(1);
     }
     core.running = 0;
     return NULL;
 }
 
-int neo_core_start(int enabled, int all_games) {
-    core.enabled = enabled;
-    core.all_games = all_games;
+int neo_core_start(const neo_config *cfg) {
+    core.cfg = *cfg;
     core.stop = 0;
-    set_status("Demarrage");
+    snprintf(core.status, sizeof core.status, "Demarrage");
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, 512 * 1024);
+    pthread_attr_setstacksize(&attr, 1024 * 1024);
     int rc = pthread_create(&core.thread, &attr, worker, NULL);
     pthread_attr_destroy(&attr);
     return rc;
 }
 
-void neo_core_set(int enabled, int all_games) {
-    core.enabled = enabled;
-    core.all_games = all_games;
+void neo_core_set(const neo_config *cfg) {
+    pthread_mutex_lock(&core.lock);
+    core.cfg = *cfg;
+    pthread_mutex_unlock(&core.lock);
 }
 
 void neo_core_stop(void) {

@@ -1,6 +1,7 @@
 #include "plugin_ui.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "plugin_config.h"
@@ -37,6 +38,21 @@ static eta_status add_toggle(eta_ui_document *doc, const char *id, const char *k
     return eta_ui_document_add_node(doc, &node);
 }
 
+static eta_status add_mhz(eta_ui_document *doc, const char *id, const char *key, const char *title,
+                          unsigned lo, unsigned hi, unsigned value) {
+    eta_ui_node_desc_v1 node = make_node(ETA_UI_NODE_INPUT, id, "main", title);
+    node.value_type = ETA_UI_VALUE_INT;
+    node.binding = ETA_UI_BINDING_EVENT;
+    node.min_value = (int)lo;
+    node.max_value = (int)hi;
+    node.min_length = 1;
+    node.max_length = 4;
+    snprintf(node.binding_key, sizeof(node.binding_key), "%s", key);
+    snprintf(node.value, sizeof(node.value), "%u", value);
+    snprintf(node.description, sizeof(node.description), "%u a %u, par pas de 50", lo, hi);
+    return eta_ui_document_add_node(doc, &node);
+}
+
 static eta_status add_nodes(eta_ui_document *doc, const plugin_ui_state *st) {
     eta_ui_node_desc_v1 node = make_node(ETA_UI_NODE_PAGE, "main", NULL, PLUGIN_NAME);
     eta_status status = eta_ui_document_add_node(doc, &node);
@@ -61,6 +77,18 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_ui_state *st) {
                              "Force le mode Pro pour tous les jeux PS4. Certains jeux ont besoin de leur patch XML pour demarrer.",
                              st->settings->all_games)) != ETA_OK) return status;
 
+    if (st->limits.memory_supported &&
+        (status = add_toggle(doc, "force_8gib", "force_8gib_changed", "Mode 8 Go (memoire)",
+                             st->memory_text, st->settings->force_8gib)) != ETA_OK) return status;
+    if ((status = add_toggle(doc, "gpu_on", "gpu_on_changed", "Boost GPU", st->gpu_text,
+                             st->settings->gpu_on)) != ETA_OK) return status;
+    if ((status = add_mhz(doc, "gpu_mhz", "gpu_mhz_changed", "Frequence GPU (MHz)",
+                          st->limits.gpu_min, st->limits.gpu_max, st->settings->gpu_mhz)) != ETA_OK) return status;
+    if ((status = add_toggle(doc, "cpu_on", "cpu_on_changed", "Boost CPU", st->cpu_text,
+                             st->settings->cpu_on)) != ETA_OK) return status;
+    if ((status = add_mhz(doc, "cpu_mhz", "cpu_mhz_changed", "Frequence CPU (MHz)",
+                          st->limits.cpu_min, st->limits.cpu_max, st->settings->cpu_mhz)) != ETA_OK) return status;
+
     node = make_node(ETA_UI_NODE_ACTION, "sync", "main", "Reinstaller les patchs de jeux");
     node.flags = ETA_UI_NODE_FLAG_CONFIRM;
     node.binding = ETA_UI_BINDING_EVENT;
@@ -75,6 +103,12 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_ui_state *st) {
         snprintf(key, sizeof(key), "game_%s_changed", st->games[i].tid);
         snprintf(title, sizeof(title), "%.90s", st->games[i].name);
         if ((status = add_toggle(doc, id, key, title, st->games[i].tid, st->games[i].pro_on)) != ETA_OK) return status;
+        if (st->games[i].has8) {
+            snprintf(id, sizeof(id), "game8_%s", st->games[i].tid);
+            snprintf(key, sizeof(key), "game8_%s_changed", st->games[i].tid);
+            snprintf(title, sizeof(title), "%.80s (8 Go)", st->games[i].name);
+            if ((status = add_toggle(doc, id, key, title, st->games[i].tid, st->games[i].on8)) != ETA_OK) return status;
+        }
     }
     return ETA_OK;
 }
@@ -118,14 +152,31 @@ eta_status plugin_ui_decode_action(eta_ui_handle handle, const eta_ui_event_v1 *
         out->enabled = parse_bool(event->value);
         return ETA_OK;
     }
+    if (!strcmp(event->node_id, "force_8gib") || !strcmp(event->node_id, "gpu_on") || !strcmp(event->node_id, "cpu_on")) {
+        out->kind = event->node_id[0] == 'f' ? PLUGIN_UI_ACTION_SET_FORCE_8GIB
+                    : event->node_id[0] == 'g' ? PLUGIN_UI_ACTION_SET_GPU : PLUGIN_UI_ACTION_SET_CPU;
+        out->enabled = parse_bool(event->value);
+        return ETA_OK;
+    }
+    if (!strcmp(event->node_id, "gpu_mhz") || !strcmp(event->node_id, "cpu_mhz")) {
+        out->kind = event->node_id[0] == 'g' ? PLUGIN_UI_ACTION_SET_GPU_MHZ : PLUGIN_UI_ACTION_SET_CPU_MHZ;
+        out->mhz = (unsigned)strtoul(event->value, NULL, 10);
+        return ETA_OK;
+    }
     if (!strcmp(event->node_id, "sync")) {
         out->kind = PLUGIN_UI_ACTION_SYNC;
         return ETA_OK;
     }
     if (!strncmp(event->node_id, "game_", 5) && strlen(event->node_id) == 5 + 9) {
         out->kind = PLUGIN_UI_ACTION_SET_GAME;
-        out->enabled = parse_bool(event->value);
+        out->game_mode = parse_bool(event->value) ? 1 : 0;
         snprintf(out->tid, sizeof(out->tid), "%s", event->node_id + 5);
+        return ETA_OK;
+    }
+    if (!strncmp(event->node_id, "game8_", 6) && strlen(event->node_id) == 6 + 9) {
+        out->kind = PLUGIN_UI_ACTION_SET_GAME;
+        out->game_mode = parse_bool(event->value) ? 2 : 1;
+        snprintf(out->tid, sizeof(out->tid), "%s", event->node_id + 6);
         return ETA_OK;
     }
     return ETA_E_NOT_FOUND;
