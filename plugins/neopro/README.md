@@ -25,7 +25,7 @@ Si `SceShellCore` redémarre, le hook est réinstallé automatiquement.
 
 * Firmwares : 4.00 à 13.60 (le hook utilise les motifs de ps-patch-system / NeoEnabler, testé par NeoEnabler surtout en 13.20).
 * Le mode mémoire 8 Go de NeoEnabler et le réglage des fréquences GPU/CPU ne sont **pas** repris ici.
-* Pas d'interface web ni de réglage 120 Hz de NeoEnabler.
+* Pas d'interface web de NeoEnabler.
 * Journal : `/data/etaHEN/NEOP00001.log`.
 
 ## Compilation

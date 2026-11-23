@@ -89,6 +89,11 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_ui_state *st) {
     if ((status = add_mhz(doc, "cpu_mhz", "cpu_mhz_changed", "Frequence CPU (MHz)",
                           st->limits.cpu_min, st->limits.cpu_max, st->settings->cpu_mhz)) != ETA_OK) return status;
 
+    if (st->hz120 >= 0 &&
+        (status = add_toggle(doc, "hz120", "hz120_changed", "Sortie video 120 Hz",
+                             "Aussi active automatiquement pour un jeu dont un patch 120 Hz est active, puis coupe a sa fermeture.",
+                             st->hz120)) != ETA_OK) return status;
+
     node = make_node(ETA_UI_NODE_ACTION, "sync", "main", "Reinstaller les patchs de jeux");
     node.flags = ETA_UI_NODE_FLAG_CONFIRM;
     node.binding = ETA_UI_BINDING_EVENT;
@@ -155,6 +160,11 @@ eta_status plugin_ui_decode_action(eta_ui_handle handle, const eta_ui_event_v1 *
     if (!strcmp(event->node_id, "force_8gib") || !strcmp(event->node_id, "gpu_on") || !strcmp(event->node_id, "cpu_on")) {
         out->kind = event->node_id[0] == 'f' ? PLUGIN_UI_ACTION_SET_FORCE_8GIB
                     : event->node_id[0] == 'g' ? PLUGIN_UI_ACTION_SET_GPU : PLUGIN_UI_ACTION_SET_CPU;
+        out->enabled = parse_bool(event->value);
+        return ETA_OK;
+    }
+    if (!strcmp(event->node_id, "hz120")) {
+        out->kind = PLUGIN_UI_ACTION_SET_HZ120;
         out->enabled = parse_bool(event->value);
         return ETA_OK;
     }

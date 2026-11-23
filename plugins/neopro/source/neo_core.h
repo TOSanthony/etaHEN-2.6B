@@ -42,3 +42,7 @@ int neo_core_sync(char *msg, size_t cap);
 int neo_games_list(neo_game_info *out, int cap);
 /* mode 0 off, 1 PS4 Pro, 2 PS4 Pro + 8 GiB */
 int neo_game_set(const char *tid, int mode, char *msg, size_t cap);
+/* 120 Hz video output (ps-patch-system flag): 1 on, 0 off, -1 unavailable. It is also switched on for the
+   launch of a game whose enabled patch needs it, and off again when the game closes. */
+int neo_hz120_state(void);
+int neo_hz120_set(int on);

@@ -1,6 +1,61 @@
 /* GPL-3.0-only. Extracted unchanged from NeoEnabler src/manager.c (gasb07/NeoEnabler): console model, game
-   detection, clock restore, launch questions, 8 GiB bookkeeping and previous-run detection. The 120 Hz hook
-   (hz120_launch / hz_launch) and the web panel are not part of this plugin. Included by neo_core.c. */
+   detection, clock restore, launch questions, 8 GiB and 120 Hz bookkeeping and previous-run detection. The web
+   panel is not part of this plugin. Included by neo_core.c. */
+/* 120 Hz video output: a flag of ps-patch-system itself (apply_120hz_videoout in its !_settings.xml), not a NeoEnabler
+   setting, so it is read from and written to that file and nothing is kept in /data/neo-settings. Only that
+   attribute changes; the file is replaced in one step so a failed write leaves the old one. */
+static char *video_xml_read(size_t *n) {
+    size_t len = 0; char *raw = ps_read(HZ120_XML, 64 << 10, &len);
+    if (!raw) {
+        static int logged;
+        if (!logged) { logged = 1; log_line("120 Hz: cannot read %s", HZ120_XML); }
+        return NULL;
+    }
+    char *t = malloc(len + 1);
+    if (t) { memcpy(t, raw, len); t[len] = 0; }
+    free(raw); *n = len;
+    return t;
+}
+/* 1 on, 0 off, -1 unavailable (file missing/unreadable or no recognisable flag). */
+static int video_120hz_state(void) {
+    size_t n; char *t = video_xml_read(&n);
+    if (!t) return -1;
+    int r = hz120_get(t); free(t);
+    return r;
+}
+static int video_120hz_set(int on) {
+    size_t n; char *t = video_xml_read(&n);
+    if (!t) return -1;
+    size_t cap = n + 64; char *out = malloc(cap);
+    int len = out ? hz120_set(t, on, out, cap) : -1;
+    free(t);
+    int rc = -1;
+    if (len >= 0 && !write_file(HZ120_XML ".neo.tmp", out, (size_t)len)) rc = rename(HZ120_XML ".neo.tmp", HZ120_XML);
+    free(out);
+    return rc;
+}
+
+/* 120 Hz video output for a launch, like 8GB Mode: turned on when the game being started has an enabled entry that
+   needs it, and turned off again once no game runs, unless it was already on (the user's own setting). */
+static struct { int active, seen_game; char tid[10]; time_t since; } hz_launch;
+
+static void hz120_launch(const char *tid, int needs) {
+    if (!(needs & NEEDS_120HZ)) {
+        if (hz_launch.active && !video_120hz_set(0)) log_line("120 Hz: %s does not need it, turned off", tid);
+        hz_launch.active = 0;
+        return;
+    }
+    int state = video_120hz_state();
+    if (state == 0) {
+        if (video_120hz_set(1)) { log_line("120 Hz: %s needs the 120 Hz video output, could not turn it on", tid); return; }
+        log_line("120 Hz: %s needs the 120 Hz video output, turned on for this launch", tid);
+    } else if (state < 0) { log_line("120 Hz: %s needs the 120 Hz video output, ps-patch-system settings not found", tid); return; }
+    if (state == 0 || hz_launch.active) {
+        hz_launch.active = 1; hz_launch.seen_game = 0; hz_launch.since = time(NULL);
+        snprintf(hz_launch.tid, sizeof hz_launch.tid, "%s", tid);
+    }
+}
+
 /* Console model: PS5 Pro model numbers are CFI-7xxx (CFI-7000, CFI-7100); every regular PS5 is CFI-1xxx or CFI-2xxx.
    The model string comes from machdep.icc.hw_model. Anything unreadable or unrecognised counts as a regular PS5,
    so the GPU target stays capped at 2200 MHz unless a Pro is positively identified. */
@@ -278,6 +333,7 @@ static void launch_poll(void) {
         pending.attr_off = launch_attr_offset(tid, info);
         patches_drop_8gib(tid);
         pending.needs = game_needs(tid);
+        hz120_launch(tid, pending.needs);
         if (force_neo) pending.needs |= NEEDS_PRO;
         log_line("launch: %s needs %s%s", tid, pending.needs & NEEDS_PRO ? "Pro mode" : "base mode",
                  pending.needs & NEEDS_8GIB ? " and 8GB Mode" : "");
@@ -308,6 +364,14 @@ static void launch_poll(void) {
 
 /* 8 GiB switched on for a launch goes back to the original budget when no game runs any more. */
 static void launch_tick(void) {
+    if (hz_launch.active) {
+        int games = mb_games();
+        if (games > 0) hz_launch.seen_game = 1;
+        else if (games == 0 && (hz_launch.seen_game || time(NULL) - hz_launch.since >= 60)) {
+            hz_launch.active = 0;
+            log_line("120 Hz: %s closed: %s", hz_launch.tid, video_120hz_set(0) ? "could not turn it off" : "turned off");
+        }
+    }
     if (!auto8.active || force_8gib) return;
     int games = mb_games();
     if (games > 0) { auto8.seen_game = 1; return; }

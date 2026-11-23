@@ -94,6 +94,7 @@ static void refresh_state(plugin_app *app) {
     neo_core_text(1, app->ui_state.gpu_text, sizeof(app->ui_state.gpu_text));
     neo_core_text(2, app->ui_state.cpu_text, sizeof(app->ui_state.cpu_text));
     neo_core_limits(&app->ui_state.limits);
+    app->ui_state.hz120 = neo_hz120_state();
     app->ui_state.game_count = neo_games_list(app->ui_state.games, NEO_MAX_GAMES);
 }
 
@@ -217,6 +218,11 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
         else app->settings.cpu_mhz = action->mhz;
         break;
     }
+    case PLUGIN_UI_ACTION_SET_HZ120:
+        if (neo_hz120_set(action->enabled))
+            snprintf(app->ui_state.message, sizeof(app->ui_state.message), "120 Hz : reglages ps-patch-system illisibles");
+        app->ui_dirty = 1;
+        return ETA_OK;
     case PLUGIN_UI_ACTION_SET_GAME:
         (void)neo_game_set(action->tid, action->game_mode, msg, sizeof(msg));
         log_message(app, "[%s] %s\n", PLUGIN_ID, msg);

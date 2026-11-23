@@ -64,6 +64,7 @@ static char *ps_get(const char *url, size_t *len) { (void)url; (void)len; return
 #include "games.h"
 #include "shellcore_hook.h"
 #include "attr_detect.h"
+#include "video_settings.h"
 
 #define BM_LOG(...) log_line(__VA_ARGS__)
 #include "../third_party/pspatch/shared/app_info.h"
@@ -98,6 +99,13 @@ static void log_state(void) {
 /* ---- game patches -------------------------------------------------------------------------------------------- */
 
 /* Same flow as NeoEnabler's patch_sync(), but the XML files come from this ELF instead of GitHub. */
+int neo_hz120_state(void) { return video_120hz_state(); }
+
+int neo_hz120_set(int on) {
+    hz_launch.active = 0;
+    return video_120hz_set(on);
+}
+
 int neo_core_sync(char *msg, size_t cap) {
     ps_result r;
     memset(&r, 0, sizeof(r));

@@ -19,6 +19,7 @@ typedef enum plugin_ui_action_kind {
     PLUGIN_UI_ACTION_SET_GPU_MHZ,
     PLUGIN_UI_ACTION_SET_CPU,
     PLUGIN_UI_ACTION_SET_CPU_MHZ,
+    PLUGIN_UI_ACTION_SET_HZ120,
     PLUGIN_UI_ACTION_SYNC
 } plugin_ui_action_kind;
 
@@ -38,6 +39,7 @@ typedef struct plugin_ui_state {
     char                   gpu_text[PLUGIN_UI_STATUS_MAX];
     char                   cpu_text[PLUGIN_UI_STATUS_MAX];
     neo_limits             limits;
+    int                    hz120; /* -1 unavailable, 0 off, 1 on */
     neo_game_info          games[NEO_MAX_GAMES];
     int                    game_count;
 } plugin_ui_state;
