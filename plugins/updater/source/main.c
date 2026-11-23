@@ -279,6 +279,9 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
     case PLUGIN_UI_ACTION_REFRESH:
         refresh_list(app, 1);
         return ETA_OK;
+    case PLUGIN_UI_ACTION_STATUS_EDIT:
+        set_status(app, app->status); /* read-only field: put the text back */
+        return ETA_OK;
     case PLUGIN_UI_ACTION_INSTALL_ONE:
         for (unsigned i = 0; i < app->list.count; ++i)
             if (strcmp(app->list.ids[i], action->plugin_id) == 0) install_one(app, app->list.ids[i]);
