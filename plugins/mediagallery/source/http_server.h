@@ -46,3 +46,4 @@ int http_path_segment(const char *target, const char *prefix, char *out,
 /* Blocks in an accept loop until the service is asked to stop.
  * Returns 0 on a clean stop, -1 when the listener could not be bound. */
 int http_server_serve(http_service *service);
+void http_server_wake(uint16_t port);

@@ -1018,11 +1018,51 @@ static int http_listen(uint16_t port, int local_only) {
     return fd;
 }
 
+/* Connects to ourselves once at start-up and logs the outcome, so the log
+ * shows whether the listener is reachable at all. The kernel completes the
+ * handshake via the backlog, so this works before accept() is reached. */
+static void http_selftest(uint16_t port) {
+    const int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) return;
+    struct sockaddr_in address;
+    memset(&address, 0, sizeof(address));
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port);
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (connect(fd, (struct sockaddr *)&address, sizeof(address)) == 0)
+        http_log("self-test: connect to 127.0.0.1:%u ok", (unsigned)port);
+    else
+        http_log("self-test: connect to 127.0.0.1:%u FAILED: %s", (unsigned)port, strerror(errno));
+    close(fd);
+}
+
+/* Unblocks accept() so a stop request is noticed even if SO_RCVTIMEO is ignored. */
+void http_server_wake(uint16_t port) {
+    const int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) return;
+    struct sockaddr_in address;
+    memset(&address, 0, sizeof(address));
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port);
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    (void)connect(fd, (struct sockaddr *)&address, sizeof(address));
+    close(fd);
+}
+
 int http_server_serve(http_service *service) {
     if (!service || !service->store) return -1;
 
     const int listen_fd = http_listen(service->port, service->local_only);
     if (listen_fd < 0) return -1;
+
+    {
+        struct timeval accept_timeout;
+        accept_timeout.tv_sec = 1;
+        accept_timeout.tv_usec = 0;
+        (void)setsockopt(listen_fd, SOL_SOCKET, SO_RCVTIMEO, &accept_timeout,
+                         sizeof(accept_timeout));
+    }
+    http_selftest(service->port);
 
     pthread_mutex_lock(&service->mutex);
     service->listening = 1;
@@ -1034,17 +1074,15 @@ int http_server_serve(http_service *service) {
         pthread_mutex_unlock(&service->mutex);
         if (stop) break;
 
-        struct pollfd descriptor;
-        descriptor.fd = listen_fd;
-        descriptor.events = POLLIN;
-        descriptor.revents = 0;
-        if (poll(&descriptor, 1, HTTP_ACCEPT_POLL_MS) <= 0) continue;
-
+        /* Blocking accept with a receive timeout (the FTP server works the same
+         * way); poll() on the listener never reported readiness on the console. */
         const int client_fd = accept(listen_fd, NULL, NULL);
         if (client_fd < 0) {
-            http_log("accept() failed: %s", strerror(errno));
+            if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)
+                http_log("accept() failed: %s", strerror(errno));
             continue;
         }
+        http_log("accepted connection fd=%d", client_fd);
 
         configure_client_socket(client_fd);
         http_spawn_connection(service, client_fd);

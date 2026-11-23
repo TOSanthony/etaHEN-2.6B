@@ -62,9 +62,13 @@ void http_service_stop(http_service *service) {
         thread = service->thread;
         join_thread = 1;
     }
+    const uint16_t wake_port = service->port;
     pthread_mutex_unlock(&service->mutex);
 
-    if (join_thread) pthread_join(thread, NULL);
+    if (join_thread) {
+        http_server_wake(wake_port);
+        pthread_join(thread, NULL);
+    }
 
     /* Detached connection workers notice stop_requested and their socket
      * timeouts, then exit; give them a bounded window to drain. */
