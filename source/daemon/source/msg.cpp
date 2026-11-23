@@ -73,6 +73,7 @@ bool control_tcp_is_listening() { return g_ctrl_fd.load() >= 0; }
 
 void *control_tcp_loop(void *args) {
   (void)args;
+  unsigned bind_failures = 0;
   while (is_handler_enabled) {
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) {
@@ -90,13 +91,23 @@ void *control_tcp_loop(void *args) {
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(ETA_CTRL_TCP_PORT);
     if (bind(s, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
-      LOG_ERROR("control_tcp: bind :%d failed: %s", ETA_CTRL_TCP_PORT,
-               strerror(errno));
-      LOG_DEBUG("rest: control_tcp bind failed errno=%d, retry", errno);
+      const int bind_errno = errno;
+      ++bind_failures;
+      /* EADDRINUSE almost always means a second etaHEN is loaded: report it
+       * once, then retry quietly (every 2 s, one log line per minute). */
+      if (bind_errno == EADDRINUSE && bind_failures == 1) {
+        LOG_WARN("control_tcp: :%d already in use - another etaHEN instance "
+                 "seems to be loaded; load etaHEN only once",
+                 ETA_CTRL_TCP_PORT);
+      } else if (bind_errno != EADDRINUSE || bind_failures % 30 == 0) {
+        LOG_ERROR("control_tcp: bind :%d failed: %s (%u attempts)",
+                  ETA_CTRL_TCP_PORT, strerror(bind_errno), bind_failures);
+      }
+      LOG_DEBUG("rest: control_tcp bind failed errno=%d, retry", bind_errno);
       close(s);
       if (!is_handler_enabled)
         break;
-      usleep(500000);
+      usleep(bind_errno == EADDRINUSE ? 2000000 : 500000);
       continue;
     }
     if (listen(s, 2) < 0) {
@@ -107,6 +118,7 @@ void *control_tcp_loop(void *args) {
       usleep(500000);
       continue;
     }
+    bind_failures = 0;
     g_ctrl_fd.store(s);
     LOG_INFO("control_tcp: listening on 0.0.0.0:%d (PC shutdown)",
              ETA_CTRL_TCP_PORT);

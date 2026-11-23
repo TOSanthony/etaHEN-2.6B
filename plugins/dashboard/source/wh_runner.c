@@ -5,6 +5,7 @@
 #include "wh_runner.h"
 
 #include <pthread.h>
+#include <stdio.h>
 
 #include "cave.h"
 #include "common.h"
@@ -35,6 +36,30 @@ static int restart_shellui(pid_t pid) {
   return rc;
 }
 
+/* etaHEN publishes /system_tmp/etahen/ready/toolbox = pid of the SceShellUI it
+ * finished hooking. Touching the shell (ptrace / restart) while etaHEN is still
+ * installing its own hooks makes both fail, so wait for that marker. */
+#define ETA_TOOLBOX_READY "/system_tmp/etahen/ready/toolbox"
+
+static int toolbox_ready_pid(void) {
+    FILE *f = fopen(ETA_TOOLBOX_READY, "r");
+    if (!f) return -1;
+    int v = -1;
+    if (fscanf(f, "%d", &v) != 1) v = -1;
+    fclose(f);
+    return v;
+}
+
+/* pid <= 0: any ready marker is fine. Returns 1 when ready, 0 on timeout. */
+static int wait_toolbox_ready(pid_t pid, int timeout_s) {
+    for (int i = 0; i < timeout_s; i++) {
+        int rp = toolbox_ready_pid();
+        if (rp > 0 && (pid <= 0 || rp == (int)pid)) { sleep(3); return 1; } /* settle */
+        sleep(1);
+    }
+    return 0;
+}
+
 static void *bridge_thread(void *arg) {
   (void)arg;
   wh_flog("installer", "---- WHBridge %s start (etaHEN plugin) ----", WH_VERSION);
@@ -42,6 +67,9 @@ static void *bridge_thread(void *arg) {
   /* At boot the plugin can start before the shell is up: wait up to ~60 s. */
   for (int i = 0; pid < 0 && i < 60; i++) { sleep(1); pid = find_pid("SceShellUI"); }
   if (pid < 0) { notify("WHBridge failed: ShellUI not found"); return NULL; }
+  if (!wait_toolbox_ready(pid, 120))
+    LOG("etaHEN toolbox not ready after 120 s, continuing anyway\n");
+  { pid_t cur = find_pid("SceShellUI"); if (cur > 0) pid = cur; }
   int want_dump = (access(WH_DUMP_FLAG, F_OK) == 0);
   int reload = 0;
   uint64_t widgets_gen = 0;
@@ -61,6 +89,8 @@ static void *bridge_thread(void *arg) {
       pid_t cur = find_pid("SceShellUI");
       if (cur > 0) pid = cur; /* the shell may have been restarted meanwhile */
     }
+    if (!wait_toolbox_ready(pid, 120))
+      LOG("restart: etaHEN toolbox still not ready for pid %d, restarting anyway\n", (int)pid);
     LOG("restart: restarting SceShellUI (pid %d) after injection\n", (int)pid);
     if (restart_shellui(pid) == 0) {
       pid_t np = -1;
@@ -73,6 +103,8 @@ static void *bridge_thread(void *arg) {
       }
       if (np > 0) {
         sleep(8); /* let the new shell finish loading before hooking it */
+        if (!wait_toolbox_ready(np, 120))
+          LOG("restart: etaHEN did not re-hook the new shell (pid %d) within 120 s\n", (int)np);
         reload = 0;
         rc = wh_install_once_g(np, want_dump, &reload, &widgets_gen);
         pid = np;
