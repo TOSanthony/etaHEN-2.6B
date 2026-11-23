@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "plugin_config.h"
+#include "plugin_lang.h"
 
 #define CONTRIBUTION_ID "settings"
 
@@ -43,7 +44,7 @@ void plugin_ui_state_init(plugin_ui_state *state,
     if (!state) return;
     memset(state, 0, sizeof(*state));
     state->settings = settings;
-    plugin_ui_state_set_status(state, "Starting…", "");
+    plugin_ui_state_set_status(state, TR("Demarrage…", "Starting…"), "");
 }
 
 static eta_status add_nodes(eta_ui_document *document,
@@ -58,25 +59,26 @@ static eta_status add_nodes(eta_ui_document *document,
     /* LABEL carries no value and no binding, so the status text is only
      * refreshed by rebuilding the whole document. */
     node = make_node(ETA_UI_NODE_LABEL, "status", "main",
-                     state->status[0] ? state->status : "Unknown");
+                     state->status[0] ? state->status : TR("Inconnu", "Unknown"));
     snprintf(node.description, sizeof(node.description), "%s",
-             state->hint[0] ? state->hint : "Read-only JSON API over the "
-                                             "console capture library");
+             state->hint[0] ? state->hint : TR("API JSON en lecture seule de la "
+                                                "bibliotheque de captures", "Read-only JSON API over the "
+                                             "console capture library"));
     status = add_node(document, &node);
     if (status != ETA_OK) return status;
 
-    node = make_node(ETA_UI_NODE_TOGGLE, "enabled", "main", "HTTP service");
+    node = make_node(ETA_UI_NODE_TOGGLE, "enabled", "main", TR("Service HTTP", "HTTP service"));
     node.value_type = ETA_UI_VALUE_BOOL;
     node.binding = ETA_UI_BINDING_EVENT;
     snprintf(node.binding_key, sizeof(node.binding_key), "enabled_changed");
     snprintf(node.value, sizeof(node.value), "%s",
              settings->enabled ? "true" : "false");
     snprintf(node.description, sizeof(node.description),
-             "Serve the media API on the local network");
+             TR("Exposer l'API media sur le reseau local", "Serve the media API on the local network"));
     status = add_node(document, &node);
     if (status != ETA_OK) return status;
 
-    node = make_node(ETA_UI_NODE_INPUT, "port", "main", "Port");
+    node = make_node(ETA_UI_NODE_INPUT, "port", "main", TR("Port", "Port"));
     node.value_type = ETA_UI_VALUE_INT;
     node.binding = ETA_UI_BINDING_EVENT;
     node.min_value = 1;
@@ -86,29 +88,29 @@ static eta_status add_nodes(eta_ui_document *document,
     snprintf(node.binding_key, sizeof(node.binding_key), "port_changed");
     snprintf(node.value, sizeof(node.value), "%u", (unsigned)settings->port);
     snprintf(node.description, sizeof(node.description),
-             "TCP port for the HTTP listener");
+             TR("Port TCP du serveur HTTP", "TCP port for the HTTP listener"));
     status = add_node(document, &node);
     if (status != ETA_OK) return status;
 
     node = make_node(ETA_UI_NODE_TOGGLE, "local_only", "main",
-                     "Localhost only");
+                     TR("Local uniquement", "Localhost only"));
     node.value_type = ETA_UI_VALUE_BOOL;
     node.binding = ETA_UI_BINDING_EVENT;
     snprintf(node.binding_key, sizeof(node.binding_key), "local_only_changed");
     snprintf(node.value, sizeof(node.value), "%s",
              settings->local_only ? "true" : "false");
     snprintf(node.description, sizeof(node.description),
-             "Bind 127.0.0.1 so other devices cannot reach the API");
+             TR("Ecoute sur 127.0.0.1 : les autres appareils n'accedent pas a l'API", "Bind 127.0.0.1 so other devices cannot reach the API"));
     status = add_node(document, &node);
     if (status != ETA_OK) return status;
 
     node = make_node(ETA_UI_NODE_ACTION, "rescan", "main",
-                     "Rescan media library");
+                     TR("Rescanner la bibliotheque", "Rescan media library"));
     node.flags = ETA_UI_NODE_FLAG_CONFIRM;
     node.binding = ETA_UI_BINDING_EVENT;
     snprintf(node.binding_key, sizeof(node.binding_key), "rescan_requested");
     snprintf(node.description, sizeof(node.description),
-             "Walk %s again and rebuild the index", PLUGIN_MEDIA_ROOT);
+             TR("Parcourt %s a nouveau et reconstruit l'index", "Walk %s again and rebuild the index"), PLUGIN_MEDIA_ROOT);
     return add_node(document, &node);
 }
 
@@ -128,7 +130,7 @@ eta_status plugin_ui_create(const plugin_ui_state *state,
              "%s", CONTRIBUTION_ID);
     snprintf(description.title, sizeof(description.title), "%s", PLUGIN_NAME);
     snprintf(description.description, sizeof(description.description),
-             "HTTP media API for the console capture library");
+             TR("API HTTP pour la bibliotheque de captures de la console", "HTTP media API for the console capture library"));
     snprintf(description.root_page_id, sizeof(description.root_page_id),
              "main");
 

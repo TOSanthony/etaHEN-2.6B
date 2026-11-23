@@ -30,6 +30,7 @@
 #include "plugin_config.h"
 #include "plugin_settings.h"
 #include "plugin_ui.h"
+#include "plugin_lang.h"
 
 #define CONNECT_ATTEMPTS 30
 #define CONNECT_RETRY_US (250 * 1000)
@@ -116,26 +117,26 @@ static void update_status(plugin_app *app) {
     media_store_release(&app->store);
 
     if (!app->last_scan_ok) {
-        snprintf(status, sizeof(status), "Scan failed");
+        snprintf(status, sizeof(status), TR("Echec du scan", "Scan failed"));
     } else {
-        snprintf(status, sizeof(status), "%lu photos / %lu videos%s", photos,
-                 videos, truncated ? " (truncated)" : "");
+        snprintf(status, sizeof(status), TR("%lu photos / %lu videos%s", "%lu photos / %lu videos%s"), photos,
+                 videos, truncated ? TR(" (tronque)", " (truncated)") : "");
     }
 
     if (!app->store.privileged) {
         /* The library lives under /user, which is unreadable without the
          * elevated authid. Say so here rather than letting the client see an
          * empty list and guess. */
-        snprintf(hint, sizeof(hint), "Not elevated; /user may be unreadable");
+        snprintf(hint, sizeof(hint), TR("Non eleve ; /user peut etre illisible", "Not elevated; /user may be unreadable"));
     } else if (http_service_running(&app->http)) {
-        snprintf(hint, sizeof(hint), "Serving on :%u%s",
+        snprintf(hint, sizeof(hint), TR("Actif sur :%u%s", "Serving on :%u%s"),
                  (unsigned)http_service_port(&app->http),
-                 app->settings.local_only ? " (loopback)" : "");
+                 app->settings.local_only ? TR(" (local uniquement)", " (loopback)") : "");
     } else if (app->settings.enabled) {
-        snprintf(hint, sizeof(hint), "Listener down; port %u",
+        snprintf(hint, sizeof(hint), TR("Ecoute arretee ; port %u", "Listener down; port %u"),
                  (unsigned)app->settings.port);
     } else {
-        snprintf(hint, sizeof(hint), "Service disabled");
+        snprintf(hint, sizeof(hint), TR("Service desactive", "Service disabled"));
     }
 
     plugin_ui_state_set_status(&app->ui_state, status, hint);

@@ -3,6 +3,8 @@
 #include "toolbox_i18n.hpp"
 #include "toolbox_route.hpp"
 
+#include <string_view>
+
 namespace eta::shellui::plugin_pages {
 
 std::string plugin_list_status(bool running, bool auto_start) {
@@ -23,12 +25,28 @@ std::string sprx_list_status(const SprxInventoryItem &entry) {
   return toolbox_i18n::tr("sprx.status.inactive");
 }
 
+/* White menu icon matching each known plugin's function (generated from
+ * bootstrapper/assets/icons/icon_xml_plug_*.svg). Unknown plugins get the
+ * generic plugin icon. */
+static std::string plugin_icon_path(std::string_view id) {
+  const char *name = "icon_xml_plugins";
+  if (id == "FTPS00001") name = "icon_xml_plug_ftp";
+  else if (id == "NTPS00001") name = "icon_xml_plug_ntp";
+  else if (id == "DPIV00001") name = "icon_xml_plug_dpi";
+  else if (id == "DASH00001") name = "icon_xml_plug_dash";
+  else if (id == "MGAL00001") name = "icon_xml_plug_gallery";
+  else if (id == "UPDT00001") name = "icon_xml_plug_updater";
+  else if (id == "NEOP00001") name = "icon_xml_plug_neo";
+  return std::string("/user/data/etaHEN/assets/") + name + ".png";
+}
+
 void append_plugin_list_links(
     ps5ui::Page &page, const std::vector<PluginInventoryItem> &plugins) {
   for (const PluginInventoryItem &plugin : plugins)
     page.link(std::string(kPluginItemPrefix) + plugin.plugin_id, plugin.name,
               toolbox::external_plugin_config_xml(plugin.plugin_id),
-              plugin_list_status(plugin.running, plugin.auto_start));
+              plugin_list_status(plugin.running, plugin.auto_start),
+              plugin_icon_path(plugin.plugin_id));
 }
 
 void fill_plugin_config(ps5ui::Page &page, const PluginInventoryItem &plugin,

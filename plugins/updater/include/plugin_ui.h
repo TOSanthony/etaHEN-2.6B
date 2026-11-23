@@ -11,7 +11,6 @@ typedef enum plugin_ui_action_kind {
     PLUGIN_UI_ACTION_NONE = 0,
     PLUGIN_UI_ACTION_SET_CHANNEL,
     PLUGIN_UI_ACTION_INSTALL_ONE,
-    PLUGIN_UI_ACTION_INSTALL_ALL,
     PLUGIN_UI_ACTION_REFRESH,
     PLUGIN_UI_ACTION_RESTORE
 } plugin_ui_action_kind;

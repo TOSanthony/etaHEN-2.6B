@@ -21,6 +21,7 @@
 
 #include "neo_core.h"
 #include "plugin_config.h"
+#include "plugin_lang.h"
 #include "xml_bundle.h"
 
 #define VERSION "PS4 Pro Mode " PLUGIN_VERSION
@@ -111,7 +112,7 @@ int neo_core_sync(char *msg, size_t cap) {
     memset(&r, 0, sizeof(r));
     ps_rename_count = 0;
     if (ps_mkdirs(PS_DIR)) {
-        snprintf(msg, cap, "Dossier %s inaccessible", PS_DIR);
+        snprintf(msg, cap, TR("Dossier %s inaccessible", "Folder %s inaccessible"), PS_DIR);
         log_line("patches: cannot create %s (errno %d)", PS_DIR, errno);
         return -1;
     }
@@ -123,8 +124,8 @@ int neo_core_sync(char *msg, size_t cap) {
         ps_apply(&r, PS_DIR, files, count, e->name, e->begin, (size_t)(e->end - e->begin));
     }
     ps_move_settings(&r, PS_DIR);
-    snprintf(msg, cap, "%d jeux, %d fichiers mis a jour, %d crees, %d inchanges%s", r.games, r.files_updated,
-             r.files_created, r.files_unchanged, r.errors ? " (erreurs, voir le log)" : "");
+    snprintf(msg, cap, TR("%d jeux, %d fichiers mis a jour, %d crees, %d inchanges%s", "%d games, %d files updated, %d created, %d unchanged%s"), r.games, r.files_updated,
+             r.files_created, r.files_unchanged, r.errors ? TR(" (erreurs, voir le log)", " (errors, see the log)") : "");
     log_line("patches: %s", msg);
     return r.errors ? -1 : 0;
 }
@@ -159,12 +160,12 @@ int neo_games_list(neo_game_info *out, int cap) {
 int neo_game_set(const char *tid, int mode, char *msg, size_t cap) {
     char name[128], ver[16];
     if (!game_tid(tid) || game_info(tid, name, sizeof(name), ver, sizeof(ver))) {
-        snprintf(msg, cap, "Jeu inconnu");
+        snprintf(msg, cap, TR("Jeu inconnu", "Unknown game"));
         return -1;
     }
     int n;
     gp_patch *p = game_patches(tid, ver, &n);
-    if (!p || n <= 0) { free(p); snprintf(msg, cap, "Aucun correctif pour %s", tid); return -1; }
+    if (!p || n <= 0) { free(p); snprintf(msg, cap, TR("Aucun correctif pour %s", "No patch for %s"), tid); return -1; }
     int rc = -1;
     if (mode) {
         const int want8 = mode == 2;
@@ -173,7 +174,7 @@ int neo_game_set(const char *tid, int mode, char *msg, size_t cap) {
             if (p[i].resolution && p[i].needs_pro && !p[i].needs_8gib == !want8 && gp_main_elf(&p[i])) pick = i;
         for (int i = 0; i < n && pick < 0; i++)
             if (p[i].needs_pro && !p[i].needs_8gib == !want8) pick = i;
-        if (pick < 0) snprintf(msg, cap, "Pas de correctif %s pour %s", want8 ? "8 Go" : "Pro", tid);
+        if (pick < 0) snprintf(msg, cap, TR("Pas de correctif %s pour %s", "No %s patch for %s"), want8 ? "8 Go" : "Pro", tid);
         else rc = game_set_patch(tid, p[pick].hash, 1, mem_ok_cached, msg, cap);
     } else {
         size_t sl;
@@ -232,11 +233,11 @@ static void publish(void) {
     shell_t s;
     int st = hook_state(&s);
     pthread_mutex_lock(&core.lock);
-    if (!core.cfg.enabled) snprintf(core.status, sizeof core.status, "Desactive");
-    else if (st == HOOK_ON) snprintf(core.status, sizeof core.status, "Actif : %s",
-                                     force_neo ? "tous les jeux PS4 en mode Pro" : "jeux avec correctif active");
-    else snprintf(core.status, sizeof core.status, "Hook ShellCore : %s", state_text(st));
-    snprintf(core.detail[0], sizeof core.detail[0], "%.190s", memory_supported() ? memory_message : "Mode 8 Go non supporte sur ce firmware");
+    if (!core.cfg.enabled) snprintf(core.status, sizeof core.status, TR("Desactive", "Disabled"));
+    else if (st == HOOK_ON) snprintf(core.status, sizeof core.status, TR("Actif : %s", "Active: %s"),
+                                     force_neo ? TR("tous les jeux PS4 en mode Pro", "all PS4 games in Pro mode") : TR("jeux avec correctif active", "games with an enabled patch"));
+    else snprintf(core.status, sizeof core.status, TR("Hook ShellCore : %s", "ShellCore hook: %s"), state_text(st));
+    snprintf(core.detail[0], sizeof core.detail[0], "%.190s", memory_supported() ? memory_message : TR("Mode 8 Go non supporte sur ce firmware", "8 GB mode not supported on this firmware"));
     snprintf(core.detail[1], sizeof core.detail[1], "%.190s", gpu.message);
     snprintf(core.detail[2], sizeof core.detail[2], "%.190s", cpu.message);
     pthread_mutex_unlock(&core.lock);
@@ -395,7 +396,7 @@ static void *worker(void *arg) {
 int neo_core_start(const neo_config *cfg) {
     core.cfg = *cfg;
     core.stop = 0;
-    snprintf(core.status, sizeof core.status, "Demarrage");
+    snprintf(core.status, sizeof core.status, TR("Demarrage", "Starting"));
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 1024 * 1024);

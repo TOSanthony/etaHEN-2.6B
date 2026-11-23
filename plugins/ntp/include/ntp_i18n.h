@@ -9,6 +9,7 @@ extern "C" {
 typedef enum ntp_lang {
     NTP_LANG_EN = 0,
     NTP_LANG_ZH_HANS = 1,
+    NTP_LANG_FR = 2,
 } ntp_lang_t;
 
 /**

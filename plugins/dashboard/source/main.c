@@ -18,6 +18,7 @@
 #include "plugin_config.h"
 #include "plugin_settings.h"
 #include "plugin_ui.h"
+#include "plugin_lang.h"
 
 #define CONNECT_ATTEMPTS 30
 #define CONNECT_RETRY_US (250 * 1000)
@@ -118,7 +119,7 @@ static void apply_tiles(plugin_app *app, int announce) {
                         want[i] ? "shown" : "hidden", changed);
             if (app->settings.notify)
                 send_notification(app, "Dashboard\n%s : %s", kTiles[i].label,
-                                  want[i] ? "affichee" : "masquee");
+                                  want[i] ? TR("affichee", "shown") : TR("masquee", "hidden"));
         }
     }
 }

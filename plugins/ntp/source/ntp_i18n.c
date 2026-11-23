@@ -50,6 +50,31 @@ static const ntp_tr_entry kTranslations[] = {
     {"notify_failed", "Time sync failed. Check network settings.", "时间同步失败，请检查网络设置。"},
 };
 
+static const struct { const char *key; const char *fr; } kFrench[] = {
+    {"title", "Synchronisation de l'heure NTP"},
+    {"about_title", "A propos"},
+    {"about_desc", "Concu pour les PS5 dont la pile CMOS est vide. Synchronise l'horloge RTC via NTP au demarrage puis periodiquement."},
+    {"enabled_title", "Service active"},
+    {"enabled_desc", "Synchronise l'heure au demarrage puis periodiquement en arriere-plan."},
+    {"server_title", "Serveur NTP"},
+    {"server_desc", "Choisis le serveur NTP utilise pour la synchronisation."},
+    {"interval_title", "Intervalle de synchronisation (minutes)"},
+    {"interval_desc", "Intervalle de synchronisation en arriere-plan (1-1440 minutes)."},
+    {"notify_title", "Notifications"},
+    {"notify_desc", "Affiche une notification a l'ecran quand la synchronisation reussit ou echoue."},
+    {"sync_now_title", "Synchroniser maintenant"},
+    {"sync_now_desc", "Verifie que la PS5 est connectee au reseau avant de synchroniser."},
+    {"srv_fr_pool", "Pool NTP France (fr.pool.ntp.org)"},
+    {"srv_eu_pool", "Pool NTP Europe (europe.pool.ntp.org)"},
+    {"srv_de_pool", "Pool NTP Allemagne (de.pool.ntp.org)"},
+    {"srv_ptb", "PTB Allemagne (ptbtime1.ptb.de)"},
+    {"srv_global", "Pool NTP mondial (pool.ntp.org)"},
+    {"srv_custom", "Serveur personnalise (%s)"},
+    {"notify_syncing", "Synchronisation de l'heure avec %s..."},
+    {"notify_success", "Heure synchronisee ! (RTT : %u ms)"},
+    {"notify_failed", "Echec de la synchronisation. Verifie les parametres reseau."},
+};
+
 #define TRANSLATION_COUNT (sizeof(kTranslations) / sizeof(kTranslations[0]))
 
 static atomic_int g_current_lang = ATOMIC_VAR_INIT(NTP_LANG_EN);
@@ -70,6 +95,8 @@ bool ntp_i18n_refresh(void) {
     /* 11 = Simplified Chinese, 10 = Traditional Chinese (can also use zh_hans/chinese) */
     if (sys_lang == 11 || sys_lang == 10) {
         resolved = NTP_LANG_ZH_HANS;
+    } else if (sys_lang == 2 || sys_lang == 22) {
+        resolved = NTP_LANG_FR;
     } else {
         resolved = NTP_LANG_EN;
     }
@@ -93,6 +120,10 @@ ntp_lang_t ntp_i18n_get_lang(void) {
 const char *ntp_tr(const char *key) {
     if (!key) return "";
     ntp_lang_t lang = ntp_i18n_get_lang();
+    if (lang == NTP_LANG_FR) {
+        for (size_t i = 0; i < sizeof(kFrench) / sizeof(kFrench[0]); ++i)
+            if (strcmp(kFrench[i].key, key) == 0) return kFrench[i].fr;
+    }
     for (size_t i = 0; i < TRANSLATION_COUNT; ++i) {
         if (strcmp(kTranslations[i].key, key) == 0) {
             return (lang == NTP_LANG_ZH_HANS) ? kTranslations[i].zh_hans : kTranslations[i].en;

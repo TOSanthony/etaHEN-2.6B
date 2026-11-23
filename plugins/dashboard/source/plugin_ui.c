@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "plugin_config.h"
+#include "plugin_lang.h"
 
 #define CONTRIBUTION_ID "settings"
 
@@ -39,21 +40,27 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s) {
 
     node = make_node(ETA_UI_NODE_LABEL, "about", "main", "A propos");
     snprintf(node.description, sizeof(node.description), "%s",
-             "Affiche ou masque les tuiles de l'accueil (modifie app.db). \"Appliquer maintenant\" redemarre aussi le shell pour charger le Welcome Hub.");
+             TR("Affiche ou masque les tuiles de l'accueil (modifie app.db). \"Appliquer maintenant\" redemarre aussi le shell pour charger le Welcome Hub.",
+        "Shows or hides the home screen tiles (edits app.db). \"Apply now\" also restarts the shell to load the Welcome Hub."));
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 
-    st = add_toggle(doc, "bridge", "bridge_changed", "Welcome Hub : connexion forcee + widgets",
-                    "Fait croire au Welcome Hub que le compte est connecte et charge les widgets "
-                    "(/data/wh-widgets). Remplace wh_bridge.elf, relance a chaque demarrage. "
-                    "Desactiver prend effet au prochain demarrage.", s->bridge);
+    st = add_toggle(doc, "bridge", "bridge_changed", TR("Welcome Hub : connexion forcee + widgets", "Welcome Hub: forced sign-in + widgets"),
+                    TR("Fait croire au Welcome Hub que le compte est connecte et charge les widgets "
+                       "(/data/wh-widgets). Remplace wh_bridge.elf, relance a chaque demarrage. "
+                       "Desactiver prend effet au prochain demarrage.",
+                       "Makes the Welcome Hub believe the account is signed in and loads the widgets "
+                       "(/data/wh-widgets). Replaces wh_bridge.elf, relaunched at every start. "
+                       "Disabling takes effect at the next start."), s->bridge);
     if (st != ETA_OK) return st;
-    st = add_toggle(doc, "restart", "restart_changed", "Redemarrer le shell apres injection",
-                    "Une fois le Welcome Hub injecte, redemarre SceShellUI une seule fois puis "
-                    "reinjecte (evite de changer de profil). Experimental. Prend effet au prochain "
-                    "demarrage du plugin.", s->restart_shell);
+    st = add_toggle(doc, "restart", "restart_changed", TR("Redemarrer le shell apres injection", "Restart the shell after injection"),
+                    TR("Une fois le Welcome Hub injecte, redemarre SceShellUI une seule fois puis "
+                       "reinjecte (evite de changer de profil). Experimental. Prend effet au prochain "
+                       "demarrage du plugin.",
+                       "Once the Welcome Hub is injected, restarts SceShellUI once then injects again "
+                       "(avoids switching profile). Experimental. Takes effect at the next plugin start."), s->restart_shell);
     if (st != ETA_OK) return st;
-    node = make_node(ETA_UI_NODE_INPUT, "restart_delay", "main", "Delai avant redemarrage du shell (s)");
+    node = make_node(ETA_UI_NODE_INPUT, "restart_delay", "main", TR("Delai avant redemarrage du shell (s)", "Delay before shell restart (s)"));
     node.value_type = ETA_UI_VALUE_INT;
     node.binding = ETA_UI_BINDING_EVENT;
     node.min_value = 5;
@@ -63,31 +70,33 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s) {
     snprintf(node.binding_key, sizeof(node.binding_key), "restart_delay_changed");
     snprintf(node.value, sizeof(node.value), "%d", s->restart_delay);
     snprintf(node.description, sizeof(node.description), "%s",
-             "Secondes d'attente apres l'injection avant de redemarrer le shell (5 a 300).");
+             TR("Secondes d'attente apres l'injection avant de redemarrer le shell (5 a 300).", "Seconds to wait after injection before restarting the shell (5 to 300)."));
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
     st = add_toggle(doc, "store", "store_changed", "PlayStation Store",
-                    "Afficher la tuile PlayStation Store sur l'accueil.", s->store);
+                    TR("Afficher la tuile PlayStation Store sur l'accueil.", "Show the PlayStation Store tile on the home screen."), s->store);
     if (st != ETA_OK) return st;
     st = add_toggle(doc, "plus", "plus_changed", "PlayStation Plus",
-                    "Afficher la tuile PlayStation Plus sur l'accueil.", s->plus);
+                    TR("Afficher la tuile PlayStation Plus sur l'accueil.", "Show the PlayStation Plus tile on the home screen."), s->plus);
     if (st != ETA_OK) return st;
     st = add_toggle(doc, "hub", "hub_changed", "Welcome Hub",
-                    "Afficher la tuile Welcome Hub sur l'accueil.", s->hub);
+                    TR("Afficher la tuile Welcome Hub sur l'accueil.", "Show the Welcome Hub tile on the home screen."), s->hub);
     if (st != ETA_OK) return st;
-    st = add_toggle(doc, "keep", "keep_changed", "Forcer en continu",
-                    "Reapplique ces choix toutes les 5 s (le Welcome Hub reste active et visible, "
-                    "le systeme ne peut pas le remasquer).", s->keep);
+    st = add_toggle(doc, "keep", "keep_changed", TR("Forcer en continu", "Keep enforcing"),
+                    TR("Reapplique ces choix toutes les 5 s (le Welcome Hub reste active et visible, "
+                       "le systeme ne peut pas le remasquer).",
+                       "Re-applies these choices every 5 s (the Welcome Hub stays enabled and visible, "
+                       "the system cannot hide it again)."), s->keep);
     if (st != ETA_OK) return st;
     st = add_toggle(doc, "notify", "notify_changed", "Notifications",
-                    "Afficher une notification quand une tuile change.", s->notify);
+                    TR("Afficher une notification quand une tuile change.", "Show a notification when a tile changes."), s->notify);
     if (st != ETA_OK) return st;
 
-    node = make_node(ETA_UI_NODE_ACTION, "apply_now", "main", "Appliquer maintenant");
+    node = make_node(ETA_UI_NODE_ACTION, "apply_now", "main", TR("Appliquer maintenant", "Apply now"));
     node.binding = ETA_UI_BINDING_EVENT;
     snprintf(node.binding_key, sizeof(node.binding_key), "apply_now_requested");
     snprintf(node.description, sizeof(node.description), "%s",
-             "Ecrit immediatement les reglages ci-dessus dans app.db.");
+             TR("Ecrit immediatement les reglages ci-dessus dans app.db.", "Writes the settings above to app.db immediately."));
     return eta_ui_document_add_node(doc, &node);
 }
 
@@ -103,7 +112,7 @@ eta_status plugin_ui_create(const plugin_settings *settings, eta_ui_document **o
     snprintf(d.contribution_id, sizeof(d.contribution_id), "%s", CONTRIBUTION_ID);
     snprintf(d.title, sizeof(d.title), "%s", "Dashboard");
     snprintf(d.description, sizeof(d.description), "%s",
-             "Tuiles de l'accueil : PlayStation Store, PlayStation Plus, Welcome Hub.");
+             TR("Tuiles de l'accueil : PlayStation Store, PlayStation Plus, Welcome Hub.", "Home screen tiles: PlayStation Store, PlayStation Plus, Welcome Hub."));
     snprintf(d.root_page_id, sizeof(d.root_page_id), "main");
 
     eta_status st = eta_ui_document_create(&d, out_document);

@@ -31,6 +31,18 @@ static const ftp_tr_entry kTranslations[] = {
      "在当前端口停止并重新启动 FTP 监听器。"},
 };
 
+static const struct { const char *key; const char *fr; } kFrench[] = {
+    {"title", "Serveur FTP"},
+    {"about_title", "A propos"},
+    {"about_desc", "Serveur FTP gere pour PS5. Active l'ecoute, choisis un port TCP ou redemarre le service."},
+    {"enabled_title", "Active"},
+    {"enabled_desc", "Demarre l'ecoute FTP sur le port TCP configure."},
+    {"port_title", "Port TCP"},
+    {"port_desc", "Port d'ecoute (1-65535). Changer le port redemarre le serveur."},
+    {"restart_title", "Redemarrer le serveur"},
+    {"restart_desc", "Arrete puis relance l'ecoute FTP sur le port actuel."},
+};
+
 #define TRANSLATION_COUNT (sizeof(kTranslations) / sizeof(kTranslations[0]))
 
 static atomic_int g_current_lang = ATOMIC_VAR_INIT(FTP_LANG_EN);
@@ -51,6 +63,8 @@ bool ftp_i18n_refresh(void) {
     /* 11 = Simplified Chinese, 10 = Traditional Chinese */
     if (sys_lang == 11 || sys_lang == 10) {
         resolved = FTP_LANG_ZH_HANS;
+    } else if (sys_lang == 2 || sys_lang == 22) {
+        resolved = FTP_LANG_FR;
     } else {
         resolved = FTP_LANG_EN;
     }
@@ -75,6 +89,10 @@ ftp_lang_t ftp_i18n_get_lang(void) {
 const char *ftp_tr(const char *key) {
     if (!key) return "";
     ftp_lang_t lang = ftp_i18n_get_lang();
+    if (lang == FTP_LANG_FR) {
+        for (size_t i = 0; i < sizeof(kFrench) / sizeof(kFrench[0]); ++i)
+            if (strcmp(kFrench[i].key, key) == 0) return kFrench[i].fr;
+    }
     for (size_t i = 0; i < TRANSLATION_COUNT; ++i) {
         if (strcmp(kTranslations[i].key, key) == 0) {
             return (lang == FTP_LANG_ZH_HANS) ? kTranslations[i].zh_hans

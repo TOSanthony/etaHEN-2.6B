@@ -50,6 +50,7 @@ eta_add_plugin(
         "${CMAKE_CURRENT_BINARY_DIR}/generated"
     LIBRARIES
         SceLibcInternal
+        SceSystemService
         kernel_sys)
 
 # The daemon identifies plugins by file name: name the ELF after the plugin ID.

@@ -20,6 +20,7 @@
 #include "plugin_config.h"
 #include "plugin_settings.h"
 #include "plugin_ui.h"
+#include "plugin_lang.h"
 
 #define CONNECT_ATTEMPTS 30
 #define CONNECT_RETRY_US (250 * 1000)
@@ -210,7 +211,7 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
         const int gpu = action->kind == PLUGIN_UI_ACTION_SET_GPU_MHZ;
         const unsigned lo = gpu ? l.gpu_min : l.cpu_min, hi = gpu ? l.gpu_max : l.cpu_max;
         if (action->mhz < lo || action->mhz > hi || action->mhz % 50 != 0) {
-            snprintf(app->ui_state.message, sizeof(app->ui_state.message), "Frequence refusee : %u a %u MHz par pas de 50", lo, hi);
+            snprintf(app->ui_state.message, sizeof(app->ui_state.message), TR("Frequence refusee : %u a %u MHz par pas de 50", "Frequency rejected: %u to %u MHz in steps of 50"), lo, hi);
             app->ui_dirty = 1;
             return ETA_E_INVALID_ARGUMENT;
         }

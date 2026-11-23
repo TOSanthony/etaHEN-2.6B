@@ -6,7 +6,7 @@ project(etaHENPluginUpdater VERSION 1.0.0 LANGUAGES C)
 set(ETA_PLUGIN_TARGET updater)
 set(ETA_PLUGIN_ID UPDT00001)
 set(ETA_PLUGIN_VERSION 1.00)
-set(ETA_PLUGIN_NAME "Plugin Updater")
+set(ETA_PLUGIN_NAME "Plugin Manager")
 
 if(NOT ETA_PLUGIN_ID MATCHES "^[A-Za-z][A-Za-z][A-Za-z][A-Za-z][0-9][0-9][0-9][0-9][0-9]$")
     message(FATAL_ERROR "ETA_PLUGIN_ID must contain four letters followed by five digits")

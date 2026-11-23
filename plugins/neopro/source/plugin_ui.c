@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "plugin_config.h"
+#include "plugin_lang.h"
 
 #define CONTRIBUTION_ID "settings"
 
@@ -24,7 +25,7 @@ void plugin_ui_state_init(plugin_ui_state *state, const plugin_settings *setting
     if (!state) return;
     memset(state, 0, sizeof(*state));
     state->settings = settings;
-    snprintf(state->status, sizeof(state->status), "Demarrage");
+    snprintf(state->status, sizeof(state->status), TR("Demarrage", "Starting"));
 }
 
 static eta_status add_toggle(eta_ui_document *doc, const char *id, const char *key, const char *title,
@@ -49,7 +50,7 @@ static eta_status add_mhz(eta_ui_document *doc, const char *id, const char *key,
     node.max_length = 4;
     snprintf(node.binding_key, sizeof(node.binding_key), "%s", key);
     snprintf(node.value, sizeof(node.value), "%u", value);
-    snprintf(node.description, sizeof(node.description), "%u a %u, par pas de 50", lo, hi);
+    snprintf(node.description, sizeof(node.description), TR("%u a %u, par pas de 50", "%u to %u, in steps of 50"), lo, hi);
     return eta_ui_document_add_node(doc, &node);
 }
 
@@ -59,7 +60,7 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_ui_state *st) {
     if (status != ETA_OK) return status;
 
     /* Read-only status: a LIST with a single item (a DISABLED node would break the whole page). */
-    node = make_node(ETA_UI_NODE_LIST, "status", "main", "Statut");
+    node = make_node(ETA_UI_NODE_LIST, "status", "main", TR("Statut", "Status"));
     node.value_type = ETA_UI_VALUE_STRING;
     node.binding = ETA_UI_BINDING_EVENT;
     snprintf(node.binding_key, sizeof(node.binding_key), "status_selected");
@@ -70,36 +71,36 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_ui_state *st) {
     snprintf(node.value, sizeof(node.value), "%s", st->status);
     if ((status = eta_ui_document_add_node(doc, &node)) != ETA_OK) return status;
 
-    if ((status = add_toggle(doc, "enabled", "enabled_changed", "Mode PS4 Pro",
-                             "Active le mode PS4 Pro pour les jeux PS4 (ShellCore hook + patchs XML).",
+    if ((status = add_toggle(doc, "enabled", "enabled_changed", TR("Mode PS4 Pro", "PS4 Pro Mode"),
+                             TR("Active le mode PS4 Pro pour les jeux PS4 (ShellCore hook + patchs XML).", "Enables PS4 Pro mode for PS4 games (ShellCore hook + XML patches)."),
                              st->settings->enabled)) != ETA_OK) return status;
-    if ((status = add_toggle(doc, "all_games", "all_games_changed", "Tous les jeux PS4",
-                             "Force le mode Pro pour tous les jeux PS4. Certains jeux ont besoin de leur patch XML pour demarrer.",
+    if ((status = add_toggle(doc, "all_games", "all_games_changed", TR("Tous les jeux PS4", "All PS4 games"),
+                             TR("Force le mode Pro pour tous les jeux PS4. Certains jeux ont besoin de leur patch XML pour demarrer.", "Forces Pro mode for every PS4 game. Some games need their XML patch to start."),
                              st->settings->all_games)) != ETA_OK) return status;
 
     if (st->limits.memory_supported &&
-        (status = add_toggle(doc, "force_8gib", "force_8gib_changed", "Mode 8 Go (memoire)",
+        (status = add_toggle(doc, "force_8gib", "force_8gib_changed", TR("Mode 8 Go (memoire)", "8 GB mode (memory)"),
                              st->memory_text, st->settings->force_8gib)) != ETA_OK) return status;
-    if ((status = add_toggle(doc, "gpu_on", "gpu_on_changed", "Boost GPU", st->gpu_text,
+    if ((status = add_toggle(doc, "gpu_on", "gpu_on_changed", TR("Boost GPU", "GPU boost"), st->gpu_text,
                              st->settings->gpu_on)) != ETA_OK) return status;
-    if ((status = add_mhz(doc, "gpu_mhz", "gpu_mhz_changed", "Frequence GPU (MHz)",
+    if ((status = add_mhz(doc, "gpu_mhz", "gpu_mhz_changed", TR("Frequence GPU (MHz)", "GPU frequency (MHz)"),
                           st->limits.gpu_min, st->limits.gpu_max, st->settings->gpu_mhz)) != ETA_OK) return status;
-    if ((status = add_toggle(doc, "cpu_on", "cpu_on_changed", "Boost CPU", st->cpu_text,
+    if ((status = add_toggle(doc, "cpu_on", "cpu_on_changed", TR("Boost CPU", "CPU boost"), st->cpu_text,
                              st->settings->cpu_on)) != ETA_OK) return status;
-    if ((status = add_mhz(doc, "cpu_mhz", "cpu_mhz_changed", "Frequence CPU (MHz)",
+    if ((status = add_mhz(doc, "cpu_mhz", "cpu_mhz_changed", TR("Frequence CPU (MHz)", "CPU frequency (MHz)"),
                           st->limits.cpu_min, st->limits.cpu_max, st->settings->cpu_mhz)) != ETA_OK) return status;
 
     if (st->hz120 >= 0 &&
-        (status = add_toggle(doc, "hz120", "hz120_changed", "Sortie video 120 Hz",
-                             "Aussi active automatiquement pour un jeu dont un patch 120 Hz est active, puis coupe a sa fermeture.",
+        (status = add_toggle(doc, "hz120", "hz120_changed", TR("Sortie video 120 Hz", "120 Hz video output"),
+                             TR("Aussi active automatiquement pour un jeu dont un patch 120 Hz est active, puis coupe a sa fermeture.", "Also turned on automatically for a game whose 120 Hz patch is enabled, then turned off when it closes."),
                              st->hz120)) != ETA_OK) return status;
 
-    node = make_node(ETA_UI_NODE_ACTION, "sync", "main", "Reinstaller les patchs de jeux");
+    node = make_node(ETA_UI_NODE_ACTION, "sync", "main", TR("Reinstaller les patchs de jeux", "Reinstall game patches"));
     node.flags = ETA_UI_NODE_FLAG_CONFIRM;
     node.binding = ETA_UI_BINDING_EVENT;
     snprintf(node.binding_key, sizeof(node.binding_key), "sync_requested");
     snprintf(node.description, sizeof(node.description), "%s",
-             st->message[0] ? st->message : "Copie les patchs inclus dans /data/user/patches/xml_orbis.");
+             st->message[0] ? st->message : TR("Copie les patchs inclus dans /data/user/patches/xml_orbis.", "Copies the bundled patches to /data/user/patches/xml_orbis."));
     if ((status = eta_ui_document_add_node(doc, &node)) != ETA_OK) return status;
 
     for (int i = 0; i < st->game_count; i++) {
@@ -111,7 +112,7 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_ui_state *st) {
         if (st->games[i].has8) {
             snprintf(id, sizeof(id), "game8_%s", st->games[i].tid);
             snprintf(key, sizeof(key), "game8_%s_changed", st->games[i].tid);
-            snprintf(title, sizeof(title), "%.80s (8 Go)", st->games[i].name);
+            snprintf(title, sizeof(title), TR("%.80s (8 Go)", "%.80s (8 GB)"), st->games[i].name);
             if ((status = add_toggle(doc, id, key, title, st->games[i].tid, st->games[i].on8)) != ETA_OK) return status;
         }
     }
@@ -128,7 +129,7 @@ eta_status plugin_ui_create(const plugin_ui_state *state, eta_ui_document **out_
     snprintf(d.plugin_id, sizeof(d.plugin_id), "%s", PLUGIN_ID);
     snprintf(d.contribution_id, sizeof(d.contribution_id), "%s", CONTRIBUTION_ID);
     snprintf(d.title, sizeof(d.title), "%s", PLUGIN_NAME);
-    snprintf(d.description, sizeof(d.description), "Jeux PS4 en mode PS4 Pro (ps-patch-system + NeoEnabler)");
+    snprintf(d.description, sizeof(d.description), TR("Jeux PS4 en mode PS4 Pro (ps-patch-system + NeoEnabler)", "PS4 games in PS4 Pro mode (ps-patch-system + NeoEnabler)"));
     snprintf(d.root_page_id, sizeof(d.root_page_id), "main");
     eta_status status = eta_ui_document_create(&d, out_document);
     if (status != ETA_OK) return status;

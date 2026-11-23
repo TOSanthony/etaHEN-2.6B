@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "plugin_config.h"
+#include "plugin_lang.h"
 
 #define CONTRIBUTION_ID "settings"
 
@@ -15,8 +16,8 @@ typedef struct known_plugin {
 
 static const known_plugin kKnown[] = {
     {"DPIV00001", "DPI v2"},
-    {"FTPS00001", "Serveur FTP"},
-    {"NTPS00001", "NTP (heure)"},
+    {"FTPS00001", "FTP Server"},
+    {"NTPS00001", "NTP"},
     {"DASH00001", "Dashboard"},
     {"MGAL00001", "Media Gallery"},
     {"NEOP00001", "PS4 Pro Mode"},
@@ -53,7 +54,7 @@ static eta_status add_action(eta_ui_document *doc, const char *id, const char *k
 
 static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
                             const plugin_list *list, const char *status_text) {
-    eta_ui_node_desc_v1 node = make_node(ETA_UI_NODE_PAGE, "main", NULL, "Mises a jour des plugins");
+    eta_ui_node_desc_v1 node = make_node(ETA_UI_NODE_PAGE, "main", NULL, TR("Mises a jour des plugins", "Plugin updates"));
     eta_status st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 
@@ -61,8 +62,8 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
      * (a text INPUT would open the keyboard; a DISABLED node breaks the page).
      * Selecting the item does nothing (the event is ignored). */
     {
-        const char *text = status_text && status_text[0] ? status_text : "Pret";
-        node = make_node(ETA_UI_NODE_LIST, "status", "main", "Statut");
+        const char *text = status_text && status_text[0] ? status_text : TR("Pret", "Ready");
+        node = make_node(ETA_UI_NODE_LIST, "status", "main", TR("Statut", "Status"));
         node.value_type = ETA_UI_VALUE_STRING;
         node.binding = ETA_UI_BINDING_EVENT;
         snprintf(node.binding_key, sizeof(node.binding_key), "status_selected");
@@ -82,7 +83,7 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
     snprintf(node.binding_key, sizeof(node.binding_key), "channel_changed");
     snprintf(node.value, sizeof(node.value), "%s", s->channel ? "latest" : "nightly");
     snprintf(node.description, sizeof(node.description), "%s",
-             "Release a utiliser : Nightly (derniere build de main) ou Latest (derniere release stable).");
+             TR("Release a utiliser : Nightly (derniere build de main) ou Latest (derniere release stable).", "Release to use: Nightly (latest main build) or Latest (latest stable release)."));
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
     node = make_node(ETA_UI_NODE_LIST_ITEM, "ch_nightly", "channel", "Nightly");
@@ -90,18 +91,15 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
     snprintf(node.value, sizeof(node.value), "nightly");
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
-    node = make_node(ETA_UI_NODE_LIST_ITEM, "ch_latest", "channel", "Latest (stable)");
+    node = make_node(ETA_UI_NODE_LIST_ITEM, "ch_latest", "channel", TR("Latest (stable)", "Latest (stable)"));
     node.value_type = ETA_UI_VALUE_STRING;
     snprintf(node.value, sizeof(node.value), "latest");
     st = eta_ui_document_add_node(doc, &node);
     if (st != ETA_OK) return st;
 
-    st = add_action(doc, "refresh", "refresh_requested", "Actualiser la liste",
-                    list->from_release ? "Relit la liste des plugins dans la release."
-                                       : "Liste de secours : impossible de lire la release, reessaie.");
-    if (st != ETA_OK) return st;
-    st = add_action(doc, "install_all", "install_all_requested", "Tout installer / mettre a jour",
-                    "Telecharge et installe tous les plugins de la liste.");
+    st = add_action(doc, "refresh", "refresh_requested", TR("Actualiser la liste", "Refresh list"),
+                    list->from_release ? TR("Relit la liste des plugins dans la release.", "Re-reads the plugin list from the release.")
+                                       : TR("Liste de secours : impossible de lire la release, reessaie.", "Fallback list: release unreachable, try again."));
     if (st != ETA_OK) return st;
     for (unsigned i = 0; i < list->count; ++i) {
         char id[64], key[64], title[96], path[96], desc[64];
@@ -109,7 +107,7 @@ static eta_status add_nodes(eta_ui_document *doc, const plugin_settings *s,
         snprintf(key, sizeof key, "install_%s_requested", list->ids[i]);
         snprintf(path, sizeof path, PLUGINS_DIR "/%s.elf", list->ids[i]);
         int installed = access(path, F_OK) == 0;
-        snprintf(title, sizeof title, "%s : %s", installed ? "Mettre a jour" : "Installer",
+        snprintf(title, sizeof title, "%s : %s", installed ? TR("Reinstaller", "Reinstall") : TR("Installer", "Install"),
                  plugin_label(list->ids[i]));
         snprintf(desc, sizeof desc, "%s.elf", list->ids[i]);
         st = add_action(doc, id, key, title, desc);
@@ -129,8 +127,8 @@ eta_status plugin_ui_create(const plugin_settings *settings, const plugin_list *
     d.priority = 100;
     snprintf(d.plugin_id, sizeof(d.plugin_id), "%s", PLUGIN_ID);
     snprintf(d.contribution_id, sizeof(d.contribution_id), "%s", CONTRIBUTION_ID);
-    snprintf(d.title, sizeof(d.title), "%s", "Mises a jour des plugins");
-    snprintf(d.description, sizeof(d.description), "%s", "Telecharger et installer les plugins depuis GitHub.");
+    snprintf(d.title, sizeof(d.title), "%s", TR("Mises a jour des plugins", "Plugin updates"));
+    snprintf(d.description, sizeof(d.description), "%s", TR("Telecharger et installer les plugins depuis GitHub.", "Download and install plugins from GitHub."));
     snprintf(d.root_page_id, sizeof(d.root_page_id), "main");
 
     eta_status st = eta_ui_document_create(&d, out_document);
@@ -157,7 +155,6 @@ eta_status plugin_ui_decode_action(eta_ui_handle handle, const eta_ui_event_v1 *
         out->channel = strcmp(event->value, "latest") == 0;
         return ETA_OK;
     }
-    if (strcmp(event->node_id, "install_all") == 0) { out->kind = PLUGIN_UI_ACTION_INSTALL_ALL; return ETA_OK; }
     if (strcmp(event->node_id, "restore") == 0) { out->kind = PLUGIN_UI_ACTION_RESTORE; return ETA_OK; }
     if (strcmp(event->node_id, "refresh") == 0) { out->kind = PLUGIN_UI_ACTION_REFRESH; return ETA_OK; }
     if (strncmp(event->node_id, "install_", 8) == 0 && strlen(event->node_id) == 8 + 9) {

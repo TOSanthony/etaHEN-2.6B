@@ -19,6 +19,7 @@
 #include "plugin_settings.h"
 #include "plugin_ui.h"
 #include "progress_file.h"
+#include "plugin_lang.h"
 
 #define CONNECT_ATTEMPTS 30
 #define CONNECT_RETRY_US (250 * 1000)
@@ -96,10 +97,10 @@ static void send_notification(plugin_app *app, const char *format, ...) {
 static const char *result_text(dl_result r) {
     switch (r) {
     case DL_OK: return "OK";
-    case DL_ERR_NETWORK: return "reseau";
-    case DL_ERR_HTTP: return "introuvable";
-    case DL_ERR_INVALID: return "fichier invalide";
-    case DL_ERR_IO: return "ecriture";
+    case DL_ERR_NETWORK: return TR("reseau", "network");
+    case DL_ERR_HTTP: return TR("introuvable", "not found");
+    case DL_ERR_INVALID: return TR("fichier invalide", "invalid file");
+    case DL_ERR_IO: return TR("ecriture", "write error");
     }
     return "?";
 }
@@ -131,7 +132,7 @@ static void on_progress(void *user, unsigned pct, size_t got, size_t total) {
     (void)total;
     progress_user *pu = (progress_user *)user;
     char phase[96];
-    snprintf(phase, sizeof phase, "Telechargement %s (%u/%u)", plugin_label(pu->id), pu->index + 1, pu->total);
+    snprintf(phase, sizeof phase, TR("Telechargement %s (%u/%u)", "Downloading %s (%u/%u)"), plugin_label(pu->id), pu->index + 1, pu->total);
     progress_update((pu->index * 100u + pct) / (pu->total ? pu->total : 1u), phase);
 }
 
@@ -165,7 +166,7 @@ static void refresh_list(plugin_app *app, int force) {
         if (app->list.from_release) return; /* keep the last good list */
         if (!force) return;
         fallback_list(&fresh);
-        set_status(app, "Liste de secours (release injoignable)");
+        set_status(app, TR("Liste de secours (release injoignable)", "Fallback list (release unreachable)"));
     } else {
         int same = app->list.from_release && app->list.count == fresh.count &&
                    memcmp(app->list.ids, fresh.ids, sizeof(fresh.ids[0]) * fresh.count) == 0;
@@ -186,7 +187,7 @@ static int install_one(plugin_app *app, const char *id, unsigned index, unsigned
     log_message(app, "[%s] downloading %s (channel=%s)\n", PLUGIN_ID, id,
                 app->settings.channel ? "latest" : "nightly");
     char phase[96];
-    snprintf(phase, sizeof phase, "Connexion %s (%u/%u)", plugin_label(id), index + 1, total);
+    snprintf(phase, sizeof phase, TR("Connexion %s (%u/%u)", "Connecting %s (%u/%u)"), plugin_label(id), index + 1, total);
     progress_update(index * 100u / (total ? total : 1u), phase);
     dl_result r = downloader_install_plugin(id, app->settings.channel, on_progress, &pu, detail,
                                             sizeof detail);
@@ -204,21 +205,21 @@ static void install_session(plugin_app *app, const char *const *ids, unsigned to
     if (total == 0) return;
     unsigned ok = 0;
     char err[96] = "";
-    progress_begin("Plugin Updater", "Preparation...");
+    progress_begin("Plugin Manager", TR("Preparation...", "Preparing..."));
     for (unsigned i = 0; i < total; ++i) ok += (unsigned)install_one(app, ids[i], i, total, err, sizeof err);
     char text[128];
     if (ok == total) {
-        if (total == 1) snprintf(text, sizeof text, "%s : installe", plugin_label(ids[0]));
-        else snprintf(text, sizeof text, "%u plugins installes", total);
+        if (total == 1) snprintf(text, sizeof text, TR("%s : installe", "%s: installed"), plugin_label(ids[0]));
+        else snprintf(text, sizeof text, TR("%u plugins installes", "%u plugins installed"), total);
     } else if (total == 1) {
         snprintf(text, sizeof text, "%s", err);
     } else {
-        snprintf(text, sizeof text, "%u / %u plugins installes", ok, total);
+        snprintf(text, sizeof text, TR("%u / %u plugins installes", "%u / %u plugins installed"), ok, total);
     }
     progress_end(ok == total, text);
     set_status(app, text);
     rebuild_ui(app); /* refresh the "Statut" line */
-    send_notification(app, "Plugin Updater\n%s%s", text, ok ? "\nRedemarre les plugins mis a jour." : "");
+    send_notification(app, "Plugin Manager\n%s%s", text, ok ? TR("\nRedemarre les plugins mis a jour.", "\nRestart the updated plugins.") : "");
 }
 
 static eta_status connect_to_daemon(plugin_app *app) {
@@ -307,16 +308,9 @@ static eta_status apply_action(plugin_app *app, const plugin_ui_action *action) 
             }
         }
         return ETA_OK;
-    case PLUGIN_UI_ACTION_INSTALL_ALL: {
-        const char *all[DL_MAX_PLUGINS];
-        unsigned n = app->list.count < DL_MAX_PLUGINS ? app->list.count : DL_MAX_PLUGINS;
-        for (unsigned i = 0; i < n; ++i) all[i] = app->list.ids[i];
-        install_session(app, all, n);
-        return ETA_OK;
-    }
     case PLUGIN_UI_ACTION_RESTORE:
         for (unsigned i = 0; i < app->list.count; ++i) downloader_forget_plugin(app->list.ids[i]);
-        send_notification(app, "Plugin Updater\nVersions integrees restaurees au prochain demarrage d'etaHEN.");
+        send_notification(app, TR("Plugin Manager\nVersions integrees restaurees au prochain demarrage d'etaHEN.", "Plugin Manager\nBuilt-in versions restored at the next etaHEN start."));
         return ETA_OK;
     case PLUGIN_UI_ACTION_NONE:
         return ETA_E_NOT_FOUND;

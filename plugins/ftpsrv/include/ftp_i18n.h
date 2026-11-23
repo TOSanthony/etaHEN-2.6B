@@ -9,6 +9,7 @@ extern "C" {
 typedef enum ftp_lang {
     FTP_LANG_EN = 0,
     FTP_LANG_ZH_HANS = 1,
+    FTP_LANG_FR = 2,
 } ftp_lang_t;
 
 /**
