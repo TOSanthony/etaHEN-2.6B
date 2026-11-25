@@ -141,6 +141,14 @@ kstuff_looks_cached() {
 sync_kstuff() {
   local dest="${CACHE}/kstuff.elf"
 
+  # A kstuff.elf committed in vendor/ always wins over the upstream download.
+  if [[ -f "${ROOT}/vendor/kstuff.elf" ]]; then
+    mkdir -p "${CACHE}"
+    cp -f "${ROOT}/vendor/kstuff.elf" "${dest}"
+    ok "kstuff.elf from vendor/ ($(wc -c < "${dest}" | tr -d ' ') bytes)"
+    return 0
+  fi
+
   # Default path: reuse local blob so every build.sh does not re-hit GitHub.
   if [[ "${FORCE_DOWNLOAD}" -eq 0 && "${FROM_SOURCE}" -eq 0 ]] &&
       kstuff_looks_cached "${dest}"; then
