@@ -37,6 +37,7 @@ static std::string plugin_icon_path(std::string_view id) {
   else if (id == "MGAL00001") name = "icon_xml_plug_gallery";
   else if (id == "UPDT00001") name = "icon_xml_plug_updater";
   else if (id == "NEOP00001") name = "icon_xml_plug_neo";
+  else if (id == "ORBM00001") name = "icon_xml_plug_orbit";
   return std::string("/user/data/etaHEN/assets/") + name + ".png";
 }
 

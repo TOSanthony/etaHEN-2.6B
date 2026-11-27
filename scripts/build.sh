@@ -432,6 +432,18 @@ main() {
   cp "${BUILD}/neopro/bin/NEOP00001.elf" "${BIN}/neopro.elf"
   ok "built neopro.elf"
 
+  # Phase 2i — Orbit Store Manager (start/stop TOSanthony/orbit-store's
+  # service, auto-start it, install its TV app FFPKG via ShadowMountPlus)
+  log "Phase 2i: Orbit Store Manager plugin"
+  cmake -S "${ROOT}/plugins/orbitmgr" -B "${BUILD}/orbitmgr" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE="${ROOT}/plugins/orbitmgr/cmake/ps5-toolchain.cmake" \
+    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
+  cmake --build "${BUILD}/orbitmgr" -j"${JOBS}"
+  [[ -f "${BUILD}/orbitmgr/bin/ORBM00001.elf" ]] || die "missing ORBM00001.elf after plugin build"
+  cp "${BUILD}/orbitmgr/bin/ORBM00001.elf" "${BIN}/orbitmgr.elf"
+  ok "built orbitmgr.elf"
+
   # Phase 3 — bootstrapper (embeds daemon/util + kstuff + assets)
   log "Phase 3/5: bootstrapper"
   build_targets bootstrapper bootstrapper_packed

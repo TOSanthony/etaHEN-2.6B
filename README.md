@@ -92,6 +92,7 @@ Port: XXXX
  - NTP time sync plugin (plugin via Plugin Updater, European servers by default, managed from ★ etaHEN Plugins)
  - Dashboard plugin (via Plugin Updater): show/hide the PlayStation Store, PlayStation Plus and Welcome Hub home tiles (app.db), managed from ★ etaHEN Plugins
  - Media Gallery plugin (via Plugin Updater): read-only HTTP access to screenshots and video clips (default port 8380), managed from ★ etaHEN Plugins
+ - Orbit Store Manager plugin (via Plugin Updater): start/stop the [Orbit Store](https://github.com/TOSanthony/orbit-store) backend service, optionally auto-start it, and install its TV app FFPKG into `/data/homebrew` (ShadowMountPlus), managed from ★ etaHEN Plugins
  - Plugin Updater (the only plugin built into etaHEN.elf): lists, downloads and installs every plugin ELF published from the GitHub releases (nightly or latest), managed from ★ etaHEN Plugins
  - *Optional* /data allowed inside apps sandboxes
  - Klog server on port 9081

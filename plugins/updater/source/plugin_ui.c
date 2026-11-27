@@ -21,6 +21,7 @@ static const known_plugin kKnown[] = {
     {"DASH00001", "Dashboard"},
     {"MGAL00001", "Media Gallery"},
     {"NEOP00001", "PS4 Pro Mode"},
+    {"ORBM00001", "Orbit Store Manager"},
 };
 
 const char *plugin_label(const char *id) {
